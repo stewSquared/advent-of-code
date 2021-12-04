@@ -1,7 +1,7 @@
 import io.Source
 import util.Using
 
-val input = Using(Source.fromResource("day-03-1.txt")) {
+val input = Using(Source.fromResource("2021/day-03-1.txt")) {
   _.getLines.toList
 }.get
 

@@ -1,4 +1,4 @@
-val commands = io.Source.fromResource("day-02-1.txt").getLines.toList
+val commands = io.Source.fromResource("2021/day-02-1.txt").getLines.toList
 
 case class Pos(horiz: Int, depth: Int, aim: Int):
   def move(command: String) = command match

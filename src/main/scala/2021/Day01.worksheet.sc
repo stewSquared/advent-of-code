@@ -1,7 +1,7 @@
 import io.Source
 import util.Using
 
-val sweep = Using(Source.fromResource("day-01-1.txt")){
+val sweep = Using(Source.fromResource("2021/day-01-1.txt")){
   _.getLines().map(_.toInt).toList
 }.get
 
