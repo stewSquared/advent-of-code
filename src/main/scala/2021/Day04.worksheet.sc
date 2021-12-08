@@ -1,38 +1,29 @@
-import io.Source
-import util.Using
-
-val input = Using(Source.fromResource("2021/day-04-1.txt")) {
-  _.getLines.toVector
-}.get
-
-val numbers = input.head.split(",").map(_.toInt).toList
+val input = io.Source.fromResource("2021/day-04-1.txt").getLines.toVector
 
 type Board = Vector[Vector[Int]]
 
-val boards: List[Board] = input.tail.filter(_.nonEmpty).grouped(5)
+val numbers = input.head.split(",").map(_.toInt).toList
+
+val boards: List[Board] = input.tail
+  .filter(_.nonEmpty)
+  .grouped(5)
   .map(_.map(_.strip.split(" ").flatMap(_.toIntOption).toVector))
   .toList
 
+extension (board: Board)
+  def bingo(marked: List[Int]): Boolean = {
+    val rowBingo = board.exists(_.forall(marked.contains))
+    val colBingo = board.transpose.exists(_.forall(marked.contains))
+    rowBingo || colBingo
+  }
+
 val prefixes = numbers.scanLeft(List[Int]())(_ :+ _)
 
-def bingo(board: Board, marked: List[Int]) = {
-  val rowBingo = board.exists(_.forall(marked.contains))
-  val colBingo = board.transpose.exists(_.forall(marked.contains))
-  rowBingo || colBingo
+def score(board: Board): Option[(Int, Int)] = {
+  prefixes.find(board.bingo).map { marked =>
+    board.flatten.filterNot(marked.contains).sum * marked.last -> marked.size
+  }
 }
 
-def bingoNumbers(board: Board) = prefixes.dropWhile(!bingo(board, _)).head
-
-def score(board: Board, marked: List[Int]) = {
-  board.flatten.filterNot(marked.contains).sum * marked.last
-}
-
-val ans1 = boards
-  .map(b => b -> bingoNumbers(b))
-  .minByOption(_._2.length)
-  .map(score)
-
-val ans2 = boards
-  .map(b => b -> bingoNumbers(b))
-  .maxByOption(_._2.length)
-  .map(score)
+val ans1 = boards.flatMap(score).minBy(_._2)._1
+val ans2 = boards.flatMap(score).maxBy(_._2)._1
