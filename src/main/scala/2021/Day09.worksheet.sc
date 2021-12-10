@@ -33,13 +33,11 @@ extension (rows: Grid)
   yield p
 
   def basin(low: Point): Set[Point] = {
-    def next(previous: Set[Point], toVisit: Set[Point]): (Set[Point], Set[Point]) =
-      toVisit -> toVisit.flatMap(adjacent).filterNot(previous).filter(heightAt(_) < 9)
-
-    Iterator.unfold(Set.empty[Point] -> Set(low)){ (previous, toVisit) =>
-      if toVisit.isEmpty then None
-      else Some((toVisit, next(previous, toVisit)))
-    }.reduce(_ union _)
+    lazy val points: LazyList[Set[Point]] = Set.empty #:: Set(low)
+      #:: points.zip(points.tail).map((previous, toVisit) =>
+          toVisit.flatMap(adjacent).filterNot(previous).filter(heightAt(_) < 9)
+        )
+    points.tail.takeWhile(_.nonEmpty).reduce(_ union _)
   }
 
 val ans1 = heightMap.lowPoints.map(p => heightMap.heightAt(p) + 1).sum
