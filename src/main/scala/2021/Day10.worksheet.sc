@@ -1,136 +1,77 @@
 import io.Source
 import util.Using
 import util.chaining.*
-
-val input = Using(Source.fromResource("2021/day-10-1.txt")) {
-  _.getLines.toList
-}.get
-
-val example = "{([(<{}[<>[]}>{[]{[(<()>"
-
-"{([(<{}[<>[]}>{[]{[(<()>"
-"{([(<{}[<>[]}>{[]{[(<()>"
-"{([(<{}[<>[]}>{[]{[(<()>"
-
-val score: Map[Char, Int] = Map(
-  ')' -> 3,
-  ']' -> 57,
-  '}' -> 1197,
-  '>' -> 25137
-)
-val score2: Map[Char, Int] = Map(
-  ')' -> 1,
-  ']' -> 2,
-  '}' -> 3,
-  '>' -> 4
-)
-
-
-
-val isClose = ">]})".toSet
-val isOpen = "({[<".toSet
-
-def matching(open: Char, close: Char) = (open, close) match {
-  case ('[', ']') => true
-  case ('<', '>') => true
-  case ('{', '}') => true
-  case ('(', ')') => true
-  case _ => false
-}
-
-def findError(chunks: String): Option[Char] = {
-  def recur(open: List[Char], remaining: List[Char]): Option[Char] = {
-    println(open.mkString + " - " + remaining.mkString)
-    val x = remaining match {
-      case Nil =>
-        println("yay we done")
-        None
-      case next :: rest if isOpen(next) => recur(next :: open, rest)
-      case next :: rest =>
-        open.headOption match {
-          case Some(o) if matching(o, next) => recur(open.tail, rest)
-          case Some(o) => Some(next)
-          case _ => None
-        }
-    }
-    println(x)
-    x
-  }
-  recur(Nil, chunks.toList)
-}
-findError(example)
-
-findError("{([(<{}[<>[]}>{[]{[(<()>")
-findError("[[<[([]))<([[{}[[()]]]")
-findError("[{[{({}]{}}([{[{{{}}([]")
-findError("[<(<(<(<{}))><([]([]()")
-findError("<{([([[(<>()){}]>(<<{{")
-
-
-
-findError("<>")
-findError("()")
-
-input.size
-input.flatMap(findError).size
-
-val ans = input.flatMap(findError).map(score).sum
-
-input.filter(findError(_).nonEmpty) foreach println
-
 import util.{Either, Right, Left}
 
-def findUnmatched(chunks: String): Either[Char, List[Char]] = {
-  def recur(open: List[Char], remaining: List[Char]): Either[Char, List[Char]] = {
-    println(open.mkString + " - " + remaining.mkString)
-    remaining match {
-      case Nil => Right(open)
-      case next :: rest if isOpen(next) => recur(next :: open, rest)
-      case next :: rest =>
-        open.headOption match {
-          case Some(o) if matching(o, next) => recur(open.tail, rest)
-          case Some(o) => Left(next)
-          case _ => Right(Nil)
-        }
-    }
-  }
-  recur(Nil, chunks.toList)
-}
+object Token:
+  opaque type Open = Char
+  opaque type Close = Char
+  type Chunk = Either[Close, List[Close]]
 
-val incomplete = input
-  .map(findUnmatched)
-  .filterNot(_.isLeft)
-  .flatMap(_.toOption)
+  val closeOf: Map[Open, Close] =
+    Map('(' -> ')', '[' -> ']', '{' -> '}', '<' -> '>')
 
-incomplete.size
+  object Open:
+    def unapply(c: Char): Option[Open] = closeOf.keys.find(_ == c)
 
-val matches = Map[Char, Char](
-  '[' -> ']',
-  '<' -> '>',
-  '{' -> '}',
-  '(' -> ')'
-)
+  object Close:
+    def unapply(c: Char): Option[Close] = closeOf.values.find(_ == c)
 
-incomplete.map(_.mkString) foreach println
-
-val completions = incomplete.map(_.map(matches))
-
-completions.map(_.mkString) foreach println
-
-def scoring(closing: List[Char]): Long = {
-  closing.foldLeft(0L)((score, next) =>
-    score * 5 + score2(next).toLong
+  val errorScore: Map[Close, Int] = Map(
+    ')' -> 3,
+    ']' -> 57,
+    '}' -> 1197,
+    '>' -> 25137
   )
-}
 
-scoring(completions.last)
+  def completionScore(completion: List[Close]): Long =
+    completion.foldLeft(0L) { (s, c) =>
+      s.toLong * 5 + " )]}>".indexOf(c)
+    }
 
-completions.size
+import Token.*
 
-completions.map(c => c.mkString -> scoring(c)).foreach((c,s) => println(s"$c - $s"))
+val chunks: List[Chunk] = Using(Source.fromResource("2021/day-10-1.txt")) {
+  _.getLines.toList.map(parseLine)
+}.get
 
-val ans2 = completions.map(scoring).sorted.drop(completions.size / 2).head
+def parseLine(line: String) = parse(line.toList, Nil)
 
-println(ans2)
+def parse(tokens: List[Char], completion: List[Close]): Chunk = tokens match
+  case Nil                => Right(completion)
+  case Open(open) :: ts   => parse(ts, closeOf(open) :: completion)
+  case Close(close) :: ts => completion match
+    case `close` :: unmatched => parse(ts, unmatched)
+    case _                    => Left(close)
+  case invalid :: ts => parse(ts, completion)
 
-incomplete.size
+val ans1 = chunks.flatMap(_.swap.toOption).map(errorScore).sum
+
+val completions = chunks.flatMap(_.toOption)
+val ans2 = completions.map(completionScore).sorted.apply(completions.size / 2)
+
+//////////////// test ////////////////
+
+val corrupted = chunks.filter(_.isLeft)
+corrupted foreach println
+
+def error(chunk: String) = parseLine(chunk).swap.toOption.get
+
+println(error("{([(<{}[<>[]}>{[]{[(<()>"))
+println(error("[[<[([]))<([[{}[[()]]]"))
+println(error("[{[{({}]{}}([{[{{{}}([]"))
+println(error("[<(<(<(<{}))><([]([]()"))
+println(error("<{([([[(<>()){}]>(<<{{"))
+
+val incomplete = chunks.filter(_.isRight)
+incomplete foreach println
+
+def completion(chunk: String) = parseLine(chunk).toOption.get
+
+println(completion("[({(<(())[]>[[{[]{<()<>>").mkString)
+println(completion("[(()[<>])]({[<{<<[]>>(").mkString)
+println(completion("(((({<>}<{<{<>}{[]{[]{}").mkString)
+println(completion("{<[[]]>}<{[{[{[]{()[[[]").mkString)
+println(completion("<{([{{}}[<[[[<>{}]]]>[]]").mkString)
+
+incomplete.flatMap(_.toSeq).map(completionScore)
