@@ -4,11 +4,7 @@ import util.Using
 
 import collection.mutable.ArraySeq
 
-case class Point(x: Int, y: Int):
-  def up = copy(y = y - 1)
-  def down = copy(y = y + 1)
-  def left = copy(x = x - 1)
-  def right = copy(x = x + 1)
+case class Point(x: Int, y: Int)
 
 def input(): Grid = Using(Source.fromResource("2021/day-11-1.txt")) { source =>
   Grid(ArraySeq.from(source.getLines.map(line => ArraySeq.from(line.map(_.asDigit)))))
@@ -24,23 +20,26 @@ class Grid (rows: ArraySeq[ArraySeq[Int]]):
   def inBounds(p: Point): Boolean = p match
     case Point(x, y) => (xRange contains x) && (yRange contains y)
 
-  def adjacent(p: Point): Seq[Point] =
-    List(p.up.left, p.up, p.up.right, p.left, p.right, p.down.left, p.down, p.down.right)
-      .filter(inBounds)
+  def adjacent(p: Point): Iterable[Point] = for
+    dx <- -1 to 1
+    dy <- -1 to 1
+    q = p.copy(x = p.x + dx, y = p.y + dy)
+    if inBounds(q)
+  yield q
 
   def allPoints: Seq[Point] = for
     x <- xRange
     y <- yRange
   yield Point(x, y)
 
-  def increment(points: Seq[Point]): Unit =
-    for p <- points do this(p) += 1
-    val flashing = points.distinct.filter(this(_) > 9)
-    for p <- flashing do this(p) = 0
-    val flashed = flashing.flatMap(p => adjacent(p).filter(this(_) != 0))
-    if flashed.nonEmpty then increment(flashed)
+  def increment(p: Point): Unit = if this(p) < 10 then
+    this(p) += 1
+    if this(p) == 10 then adjacent(p).foreach(increment)
 
-  def step() = increment(allPoints)
+  def step() =
+    allPoints.foreach(increment)
+    allPoints.filter(this(_) == 10).foreach(this(_) = 0)
+
 
 def flashCounts(grid: Grid = input()) = Iterator.continually {
   grid.step()
