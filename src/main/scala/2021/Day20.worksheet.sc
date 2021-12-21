@@ -8,50 +8,40 @@ val alg = BitSet.fromSpecific(
 
 val rawImage = input.drop(2)
 
-final val MAX_ITERS = 50
-final val MAX_WIDTH = rawImage(0).size + MAX_ITERS * 2
-
 case class Area(left: Int, right: Int, top: Int, bot: Int):
   def expand(n: Int): Area =
     copy(left - n, right + n, top - n, bot + n)
   val xRange = left until right
   val yRange = top until bot
+  val width = right - left
+  val height = top - bot
+
+  def pointToInt(x: Int, y: Int): Option[Int] =
+    val inBounds = xRange.contains(x) && yRange.contains(y)
+    if !inBounds then None
+    else Some((y - top) * width + (x - left))
 
 case class Point(x: Int, y: Int):
-  def toInt = Point.toInt(x, y)
+  def toInt(a: Area) = a.pointToInt(x, y)
   def nine: Seq[Point] =
     for
       dy <- -1 to 1
       dx <- -1 to 1
     yield Point(x + dx, y + dy)
 
-object Point:
-  def toInt(x: Int, y: Int): Int =
-    (y + MAX_ITERS) * (MAX_WIDTH) + (x + MAX_ITERS)
-
-  def fromInt(n: Int): Point =
-    Point(n / MAX_WIDTH - MAX_ITERS, n % MAX_WIDTH - MAX_ITERS)
-
-  extension (image: BitSet) def apply(p: Point) = image(p.toInt)
-
 case class Image(grid: BitSet, inverted: Boolean, area: Area):
-  def apply(p: Point) = litAt(p)
+  def litAt(p: Point) = p.toInt(area).exists(grid) ^ inverted
 
-  def litAt(p: Point): Boolean = grid(p) ^ inverted
-
-  def numLit: Int =
-    if inverted then Int.MaxValue else grid.size
-
-  def numDark: Int =
-    if inverted then grid.size else Int.MaxValue
+  def numLit = if inverted then Int.MaxValue else grid.size
+  def numDark = if inverted then grid.size else Int.MaxValue
 
   def show: String =
-    val col = for y <- area.yRange yield
-      val row =
+    val lines = for y <- area.yRange yield
+      val line =
         for x <- area.xRange
         yield if litAt(Point(x, y)) then '#' else '.'
-      row.mkString
-    col.mkString("\n")
+      line.mkString
+    lines.mkString("\n")
 
   def index(p: Point): Int =
     val bits = p.nine.map(q => if litAt(q) then '1' else '0')
@@ -59,24 +49,24 @@ case class Image(grid: BitSet, inverted: Boolean, area: Area):
 
   def enhance: Image =
     val nextInverted = if inverted then alg(511) else alg(0)
-    val newArea = area.expand(1)
-    val newPoints = for
-      y <- newArea.yRange
-      x <- newArea.xRange
+    val nextArea = area.expand(1)
+    val nextPoints = for
+      y <- nextArea.yRange
+      x <- nextArea.xRange
       p = Point(x, y)
       if alg(index(p)) ^ nextInverted
-    yield p.toInt
-    val newGrid = BitSet.fromSpecific(newPoints)
-    Image(newGrid, nextInverted, newArea)
+    yield p.toInt(nextArea).get
+    val nextGrid = BitSet.fromSpecific(nextPoints)
+    Image(nextGrid, nextInverted, nextArea)
 
 val image0: Image =
   val area = Area(0, rawImage(0).size, 0, rawImage.size)
-  val pointIndices = for
+  val points = for
     y <- area.yRange.iterator
     x <- area.xRange.iterator
     if rawImage(y)(x) == '#'
-  yield Point.toInt(x, y)
-  val grid = BitSet.fromSpecific(pointIndices)
+  yield area.pointToInt(x, y).get
+  val grid = BitSet.fromSpecific(points)
   Image(grid, inverted = false, area)
 
 val images = LazyList.iterate(image0, 51)(_.enhance)
@@ -86,12 +76,15 @@ val ans2 = images(50).numLit
 
 // tests
 
-Point(-MAX_ITERS, -MAX_ITERS).toInt
-Point(MAX_WIDTH - MAX_ITERS - 1, -MAX_ITERS).toInt
-Point(-MAX_ITERS, -MAX_ITERS + 1).toInt
-Point(MAX_WIDTH - MAX_ITERS - 1, rawImage.size - MAX_ITERS - 1).toInt
+val a0 = Area(0, 10, 0, 10)
+Point(a0.xRange(0), a0.yRange(0)).toInt(a0)
+Point(a0.xRange.last, a0.yRange(0)).toInt(a0)
+Point(a0.xRange(0), a0.yRange(1)).toInt(a0)
 
-Point.fromInt(Point(0, 0).toInt)
+val a50 = a0.expand(50 * 2)
+Point(a50.xRange(0), a50.yRange(0)).toInt(a50)
+Point(a50.xRange.last, a50.yRange(0)).toInt(a50)
+Point(a50.xRange(0), a50.yRange(1)).toInt(a50)
 
 image0.inverted
 image0.numLit
