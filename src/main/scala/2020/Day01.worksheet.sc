@@ -1,6 +1,6 @@
 
 // val expenses = List(1721, 979, 366, 299, 675, 1456)
-val expenses = io.Source.fromResource("2020/day-01-1.txt").getLines.map(_.toInt).toList
+val expenses = io.Source.fromResource("2020/day-01.txt").getLines.map(_.toInt).toList
 
 expenses.size
 
