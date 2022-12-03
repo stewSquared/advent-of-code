@@ -1,27 +1,38 @@
 val guide = io.Source.fromResource("2022/day-02.txt").getLines().toList
 
-def score1(round: String): Int =
-  val choice = round match
-    case s"$opponent X" => 1
-    case s"$opponent Y" => 2
-    case s"$opponent Z" => 3
-  val outcome = round match
-    case "A X" | "B Y" | "C Z" => 3
-    case "A Y" | "B Z" | "C X" => 6
-    case _ => 0
-  choice + outcome
+enum Outcome:
+  case Loss, Draw, Win
+  val score = this.ordinal * 3
 
-def score2(round: String): Int =
-  val outcome = round match
-    case s"$opponent X" => 0
-    case s"$opponent Y" => 3
-    case s"$opponent Z" => 6
-  val choice = round match
-    case "A Y" | "B X" | "C Z" => 1
-    case "A Z" | "B Y" | "C X" => 2
-    case _ => 3
+import Outcome.*
 
-  choice + outcome
+enum Hand:
+  case Rock, Paper, Scissors
+  val score = this.ordinal + 1
 
-val ans1 = guide.map(score1).sum
-val ans2 = guide.map(score2).sum
+  def outcomeAgainst(other: Hand) =
+    val diff = (this.ordinal - other.ordinal + 3) % 3
+    if diff == 1 then Win
+    else if diff == 2 then Loss
+    else Draw
+
+  def choiceFor(outcome: Outcome) = outcome match
+    case Draw => this
+    case Win => Hand.fromOrdinal((this.ordinal + 1) % 3)
+    case Loss => Hand.fromOrdinal((this.ordinal + 2) % 3)
+
+val ans1 = guide.map {
+  case s"$o $c" =>
+    val opponent = Hand.fromOrdinal("ABC".indexOf(o))
+    val choice = Hand.fromOrdinal("XYZ".indexOf(c))
+    val outcome = choice.outcomeAgainst(opponent)
+    choice.score + outcome.score
+}.sum
+
+val ans2 = guide.map {
+  case s"$o $c" =>
+    val opponent = Hand.fromOrdinal("ABC".indexOf(o))
+    val outcome = Outcome.fromOrdinal("XYZ".indexOf(c))
+    val choice = opponent.choiceFor(outcome)
+    choice.score + outcome.score
+}.sum
