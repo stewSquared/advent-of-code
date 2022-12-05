@@ -1,36 +1,26 @@
-type State = Map[Int, Vector[Char]]
+type State = Vector[String]
 
 val lines = io.Source.fromResource("2022/day-05.txt").getLines()
 val drawing = lines.takeWhile(_.nonEmpty).toVector
-val stackNames = drawing.last.split(' ').flatMap(_.toIntOption).toList
 val steps = lines.toList
 
-val stackRows: Vector[Vector[Option[Char]]] = drawing.init.map {
-  _.grouped(4).map(_(1)).map(c => Option.unless(c.isSpaceChar)(c)).toVector
+val start: State = drawing.init.transpose.collect {
+  case col if col.exists(_.isLetter) => col.mkString.stripLeading
 }
 
-val stacks = stackRows.transpose.map(_.flatten.reverse)
-
-val start: State = stackNames.zip(stacks).toMap
-
-def move(state: State, step: String, preserve: Boolean): State = step match {
+def move(state: State, step: String, multi: Boolean): State = step match
   case s"move $c from $s to $d" =>
     val count = c.toInt
-    val source = s.toInt
-    val dest = d.toInt
-
-    val moving = state(source).takeRight(count)
+    val source = s.toInt - 1
+    val dest = d.toInt - 1
+    val moving = state(source).take(count)
 
     state
-      .updated(source, state(source).dropRight(count))
-      .updated(
-        dest,
-        state(dest) ++ (if preserve then moving else moving.reverse)
-      )
-}
+      .updated(source, state(source).drop(count))
+      .updated(dest, (if multi then moving else moving.reverse) ++ state(dest))
 
-val finalState1 = steps.foldLeft(start)(move(_, _, false))
-val ans1 = finalState1.toList.sortBy(_._1).map(_._2.last).mkString
+val finalState1 = steps.foldLeft(start)(move(_, _, multi = false))
+val ans1 = finalState1.map(_.head).mkString
 
-val finalState2 = steps.foldLeft(start)(move(_, _, true))
-val ans2 = finalState2.toList.sortBy(_._1).map(_._2.last).mkString
+val finalState2 = steps.foldLeft(start)(move(_, _, multi = true))
+val ans2 = finalState2.map(_.head).mkString
