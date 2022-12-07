@@ -1,8 +1,16 @@
 val input = io.Source.fromResource("2019/day-05.txt").getLines().next()
 val intcode = input.split(',').map(_.toInt).toVector
 
-enum Ops:
-  case Add, Mul, Save, Out, JumpTrue, JumpFalse, LT, EQ, Halt
+enum Ops(val numParams: Int):
+  case Add extends Ops(3)
+  case Mul extends Ops(3)
+  case Save extends Ops(1)
+  case Out extends Ops(1)
+  case JumpTrue extends Ops(2)
+  case JumpFalse extends Ops(2)
+  case LT extends Ops(3)
+  case EQ extends Ops(3)
+  case Halt extends Ops(0)
 
 import Ops.*
 
@@ -11,69 +19,47 @@ object Ops:
     if inst == 99 then Ops.Halt else Ops.fromOrdinal(inst % 100 - 1)
 
 case class State(memory: Vector[Int], ip: Int):
-  def step(input: Int): Option[(Option[Int], State)] =
-    val inst =  memory(ip)
-    val opcode = memory(ip) % 100
-    def value(pos: Int): Int =
-      val param = memory(ip + 1 + pos)
-      val mode = (inst / 100).toString.reverse.padTo(3, '0')(pos)
-      if mode == '0' then memory(param) else param
+  lazy val inst =  memory(ip)
 
-    Ops.fromInst(inst) match
+  def value(pos: Int): Int =
+    val param = memory(ip + 1 + pos)
+    val mode = (inst / 100).toString.reverse.padTo(3, '0')(pos)
+    if mode == '0' then memory(param) else param
+  def addr(op: Ops): Int = memory(ip + op.numParams)
+
+  def progress(op: Ops): State = copy(ip = ip + 1 + op.numParams)
+  def jump(addr: Int): State = copy(ip = addr)
+  def write(value: Int, op: Ops): State =
+    // Note: Parameters that an instruction writes to will never be in immediate mode.
+    copy(memory.updated(addr(op), value))
+
+  def withOutput(output: Int) = Some(Some(output) -> this)
+  def noOutput = Some(None -> this)
+
+  def step(input: Int): Option[(Option[Int], State)] =
+    println(memory.drop(ip).take(4))
+    val op = Ops.fromInst(inst)
+    op match
       case Add =>
-        val x = value(0)
-        val y = value(1)
-        val addr = memory(ip + 3)
-        Some(
-          None -> copy(
-            memory = memory.updated(addr, x + y),
-            ip = ip + 4
-          )
-        )
+        write(value(0) + value(1), op).progress(op).noOutput
       case Mul =>
-        val x = value(0)
-        val y = value(1)
-        val addr = memory(ip + 3)
-        Some(
-          None -> copy(
-            memory = memory.updated(addr, x * y),
-            ip = ip + 4
-          )
-        )
+        write(value(0) * value(1), op).progress(op).noOutput
       case Save =>
-        val addr = memory(ip + 1)
-        Some(
-          None -> copy(
-            memory = memory.updated(addr, input),
-            ip = ip + 2
-          )
-        )
+        write(input, op).progress(op).noOutput
       case Out =>
-        val addr = memory(ip + 1)
-        val output: Option[Int] = Some(memory(addr))
-        Some(output -> copy(ip = ip + 2))
+        progress(op).withOutput(memory(addr(op)))
       case JumpTrue =>
-        val x = value(0)
-        val addr = value(1)
-        if x != 0 then Some(None -> copy(ip = addr))
-        else Some(None -> copy(ip = ip + 3))
+        if value(0) != 0 then jump(value(1)).noOutput
+        else progress(op).noOutput
       case JumpFalse =>
-        val x = value(0)
-        val addr = value(1)
-        if x == 0 then Some(None -> copy(ip = addr))
-        else Some(None -> copy(ip = ip + 3))
+        if value(0) == 0 then jump(value(1)).noOutput
+        else progress(op).noOutput
       case LT =>
-        val x = value(0)
-        val y = value(1)
-        val addr = memory(ip + 3)
-        val result = if x < y then 1 else 0
-        Some(None -> copy(memory = memory.updated(addr, result), ip + 4))
+        val result = if value(0) < value(1) then 1 else 0
+        write(result, op).progress(op).noOutput
       case EQ =>
-        val x = value(0)
-        val y = value(1)
-        val addr = memory(ip + 3)
-        val result = if x == y then 1 else 0
-        Some(None -> copy(memory = memory.updated(addr, result), ip + 4))
+        val result = if value(0) == value(1) then 1 else 0
+        write(result, op).progress(op).noOutput
       case Halt => None
 
 def run(initialMemory: Vector[Int], input: Int): Vector[Option[Int]] =
@@ -97,13 +83,7 @@ Vector(3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9).size
 Vector(3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9).indexOf(4)
 
 run(Vector(3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9), 0)
-run(Vector(3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9), 1) // LOOOP
-
-// run(intcode, input = 5)
+run(Vector(3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9), 1)
 
 val ans1 = run(intcode, input = 1).last.get
 val ans2 = run(intcode, input = 5).last.get
-
-// State(Vector(1002,4,3,4,33), 0).step
-
-// run(Vector(1002,4,3,4,33))
