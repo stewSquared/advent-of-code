@@ -1,78 +1,80 @@
 val input = io.Source.fromResource("2019/day-05.txt").getLines().next()
 val intcode = input.split(',').map(_.toInt).toVector
 
-(1002 / 100).toString.reverse.padTo(3, '0')
+enum Ops:
+  case Add, Mul, Save, Out, JumpTrue, JumpFalse, LT, EQ, Halt
+
+import Ops.*
+
+object Ops:
+  def fromInst(inst: Int) =
+    if inst == 99 then Ops.Halt else Ops.fromOrdinal(inst % 100 - 1)
 
 case class State(memory: Vector[Int], ip: Int):
   def step(input: Int): Option[(Option[Int], State)] =
-    val inst = memory(ip) % 100
+    val inst =  memory(ip)
+    val opcode = memory(ip) % 100
     def value(pos: Int): Int =
       val param = memory(ip + 1 + pos)
-      val mode =
-        (memory(ip) / 100).toString.reverse.padTo(3, '0')(pos) // TODO hardcoded
+      val mode = (inst / 100).toString.reverse.padTo(3, '0')(pos)
       if mode == '0' then memory(param) else param
 
-    println(memory.drop(ip).take(4))
-    inst match
-      case 1 =>
+    Ops.fromInst(inst) match
+      case Add =>
         val x = value(0)
         val y = value(1)
         val addr = memory(ip + 3)
-        val output: Option[Int] = None
         Some(
-          output -> copy(
+          None -> copy(
             memory = memory.updated(addr, x + y),
             ip = ip + 4
           )
         )
-      case 2 =>
+      case Mul =>
         val x = value(0)
         val y = value(1)
         val addr = memory(ip + 3)
-        val output: Option[Int] = None
         Some(
-          output -> copy(
+          None -> copy(
             memory = memory.updated(addr, x * y),
             ip = ip + 4
           )
         )
-      case 3 =>
+      case Save =>
         val addr = memory(ip + 1)
-        val output: Option[Int] = None
         Some(
-          output -> copy(
+          None -> copy(
             memory = memory.updated(addr, input),
             ip = ip + 2
           )
         )
-      case 4 =>
+      case Out =>
         val addr = memory(ip + 1)
         val output: Option[Int] = Some(memory(addr))
         Some(output -> copy(ip = ip + 2))
-      case 5 =>
+      case JumpTrue =>
         val x = value(0)
         val addr = value(1)
         if x != 0 then Some(None -> copy(ip = addr))
         else Some(None -> copy(ip = ip + 3))
-      case 6 =>
+      case JumpFalse =>
         val x = value(0)
         val addr = value(1)
         if x == 0 then Some(None -> copy(ip = addr))
         else Some(None -> copy(ip = ip + 3))
-      case 7 =>
+      case LT =>
         val x = value(0)
         val y = value(1)
         val addr = memory(ip + 3)
         val result = if x < y then 1 else 0
         Some(None -> copy(memory = memory.updated(addr, result), ip + 4))
-      case 8 =>
+      case EQ =>
         val x = value(0)
         val y = value(1)
         val addr = memory(ip + 3)
         val result = if x == y then 1 else 0
         Some(None -> copy(memory = memory.updated(addr, result), ip + 4))
-
-      case 99 => None
+      case Halt => None
 
 def run(initialMemory: Vector[Int], input: Int): Vector[Option[Int]] =
   LazyList
