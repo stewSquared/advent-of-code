@@ -1,1 +1,4 @@
 target/
+/*.json
+scratch
+/notes/*
