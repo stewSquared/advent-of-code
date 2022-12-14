@@ -35,12 +35,8 @@ object Packet:
 
   given Ordering[Packet] with
     def compare(left: Packet, right: Packet): Int = (left, right) match
-      case (Num(l), Num(r)) => l - r
-      case (PList(l, ls*), PList(r, rs*)) =>
-        val compareHead = compare(l, r)
-        if compareHead != 0 then compareHead
-        else compare(PList(ls*), PList(rs*))
-      case (PList(ls*), PList(rs*)) => ls.size - rs.size
+      case (Num(l), Num(r))         => l - r
+      case (PList(ls*), PList(rs*)) => Ordering[Seq[Packet]].compare(ls, rs)
       case (PList(_*), Num(r))      => compare(left, PList(right))
       case (Num(l), PList(_*))      => compare(PList(left), right)
 
