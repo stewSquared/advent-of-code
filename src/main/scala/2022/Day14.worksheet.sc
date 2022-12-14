@@ -1,9 +1,6 @@
 val input = io.Source.fromResource("2022/day-14.txt").getLines().toList
 
-case class Point(x: Int, y: Int):
-  def d = copy(y = y + 1)
-  def dl = copy(x = x - 1, y = y + 1)
-  def dr = copy(x = x + 1, y = y + 1)
+case class Point(x: Int, y: Int)
 
 val paths = input.map {
   _.split(" -> ").map { case s"$x,$y" => Point(x.toInt, y.toInt) }.toList
@@ -19,36 +16,26 @@ val rocks = paths.flatMap {
   }
 }.toSet
 
-val source: Point = Point(500, 0)
-val abyss: Int = rocks.map(_.y).max + 1
+val source = Point(500, 0)
+val lowestRock = rocks.map(_.y).max
+val floor = lowestRock + 2
 
-def fall(occupied: Set[Point]): LazyList[Point] = LazyList.unfold(source) {
-  pos =>
-    val d = Option(pos.d).filterNot(occupied)
-    val dl = Option(pos.dl).filterNot(occupied)
-    val dr = Option(pos.dr).filterNot(occupied)
+case class SearchState(path: List[Point], sand: Set[Point]):
+  def air(p: Point) = !sand(p) && !rocks(p)
 
-    val nextPos = d.orElse(dl).orElse(dr)
-    nextPos.map(p => p -> p)
+  def next: Option[SearchState] = path.headOption.map { case pos@Point(x, y) =>
+    val d = Option(Point(x, y + 1)).filter(air)
+    val dl = Option(Point(x - 1, y + 1)).filter(air)
+    val dr = Option(Point(x + 1, y + 1)).filter(air)
+
+    val fallPos = (d orElse dl orElse dr).filter(_.y < floor)
+    fallPos.fold(copy(path.tail, sand + pos))(p => copy(p :: path))
+  }
+
+def states = LazyList.unfold(SearchState(List(source), Set.empty)) {
+  _.next.map(s => s -> s)
 }
 
-def sandPoints1 = Iterator.unfold(rocks) { occupied =>
-  fall(occupied)
-    .takeWhile(_.y <= abyss)
-    .lastOption
-    .filterNot(_.y == abyss)
-    .map(resting => resting -> occupied.incl(resting))
-}
+val ans1 = states.takeWhile(_.path.head.y < lowestRock).last.sand.size
 
-val ans1 = sandPoints1.size
-
-val floor = abyss + 1
-
-def sandPoints2 = Iterator.unfold(rocks) { occupied =>
-  fall(occupied)
-    .takeWhile(_.y < floor)
-    .lastOption
-    .map(resting => resting -> occupied.incl(resting))
-}
-
-val ans2 = sandPoints2.size + 1
+val ans2 = states.last.sand.size
