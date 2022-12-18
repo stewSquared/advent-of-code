@@ -23,17 +23,13 @@ case class Point(x: Int, y: Int, z: Int):
 
 val ans1 = cubes.iterator.map(_.adj.diff(cubes).size).sum
 
-def search: Int =
-  val start = Point(xRange.min, yRange.min, zRange.min)
-  var visited = Set(start)
-  val toVisit = collection.mutable.Queue(start)
-  var exposed = 0
-  while toVisit.nonEmpty do
-    val next = toVisit.dequeue().adj.diff(visited)
-    val (blocked, air) = next.partition(cubes)
-    visited |= air
-    toVisit ++= air
-    exposed += blocked.size
-  exposed
+val start = Point(xRange.min, yRange.min, zRange.min)
 
-val ans2 = search
+def search = Iterator.unfold(Set.empty[Point], Set(start)) { (visited, visiting) =>
+  Option.when(visiting.nonEmpty) {
+    val (blocked, air) = visiting.flatMap(_.adj.diff(visited)).partition(cubes)
+    blocked.size -> (visited ++ visiting, air)
+  }
+}
+
+val ans2 = search.sum
