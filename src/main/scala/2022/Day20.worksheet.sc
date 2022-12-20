@@ -1,30 +1,23 @@
-val numbers =
-  io.Source.fromResource("2022/day-20.txt").getLines().map(_.toLong).toVector
-
-// val numbers = Vector[Long](1, 2, -3, 3, -2, 0, 4)
+val input = io.Source.fromResource("2022/day-20.txt").getLines().toVector
+val numbers = input.map(_.toLong)
 
 type Perm = Array[Int]
 val id: Perm = numbers.indices.toArray
 
-def compose(p: Map[Int, Int], q: Perm): Perm =
-  q.map(i => p.get(i).getOrElse(i))
-
-def inverse(p: Perm): Perm =
-  p.zipWithIndex.sortBy(_._1).map(_._2)
-
 def shuffle(numbers: Vector[Long])(p: Perm, i: Int): Perm =
   val s = p(i)
-  val n = (numbers(inverse(p)(s)) + s) % (numbers.size - 1) - s match
+  val n = (numbers(i) + s) % (numbers.size - 1) - s match
     case x if s + x < 0 => (x + numbers.size - 1).toInt
-    case x => x.toInt
+    case x              => x.toInt
   if (n % numbers.size) == 0 then p
   else
     val e = s + n
-    val r = (s to e by (e - s).sign)
-    val q = r.map { j =>
-      j -> ((j + n - s) % r.size + s)
+    val r = (s to e by n.sign)
+    p.map {
+      case `s` => e
+      case j if r.contains(j) => j - n.sign
+      case j => j
     }
-    compose(q.toMap.withDefault(n => n), p)
 
 def permute[T](numbers: Vector[T], p: Perm): Vector[T] =
   numbers.zipWithIndex
@@ -32,28 +25,18 @@ def permute[T](numbers: Vector[T], p: Perm): Vector[T] =
     .map((n, i) => n)
     .toVector
 
-def mix(numbers: Vector[Long]): Vector[Long] =
-  val p = numbers.indices.foldLeft(id)(shuffle(numbers))
-  permute(numbers, p)
+def groveCoordinateSum(mixed: Vector[Long]) =
+  val circ = Iterator.continually(mixed).flatten.dropWhile(_ != 0).drop(1)
+  val x = circ.drop(999).next()
+  val y = circ.drop(999).next()
+  val z = circ.drop(999).next()
+  x + y + z
+
+val perm1 = id.foldLeft(id)(shuffle(numbers))
+val ans1 = groveCoordinateSum(permute(numbers, perm1))
 
 val key = 811589153L
-
 val decrypted = numbers.map(_.toLong * key)
 
-// val mixingPerm = LazyList.iterate(id -> id) {
-//   case (p, q) =>
-//     val r = q.foldLeft(p)(shuffle(decrypted))
-//     r -> inverse(q)
-// }(10)._1
-
-// val mixed = permute(decrypted, mixingPerm)
-
-// val it = Iterator.continually(mixed).flatten
-//   .drop(mixed.indexOf(0) + 1)
-
-// val a = it.drop(999).next()
-// val b = it.drop(999).next()
-// val c = it.drop(999).next()
-
-// val ans = a + b + c
-// 7973051839072
+val perm2 = LazyList.iterate(id)(id.foldLeft(_)(shuffle(decrypted)))(10)
+val ans2 = groveCoordinateSum(permute(decrypted, perm2))
