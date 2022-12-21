@@ -6,10 +6,8 @@ val id: Perm = numbers.indices.toArray
 
 def shuffle(numbers: Vector[Long])(p: Perm, i: Int): Perm =
   val s = p(i)
-  val n = (numbers(i) + s) % (numbers.size - 1) - s match
-    case x if s + x < 0 => (x + numbers.size - 1).toInt
-    case x              => x.toInt
-  if (n % numbers.size) == 0 then p
+  val n = math.floorMod(numbers(i) + s, numbers.size - 1).toInt - s
+  if n == 0 then p
   else
     val e = s + n
     val r = (s to e by n.sign)
