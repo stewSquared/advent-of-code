@@ -38,24 +38,13 @@ sealed trait Exp:
     case Val(n) => false
     case Var => true
 
-  def partialEval: Long = this match
-    case Add(a, b) => a.partialEval + b.partialEval
-    case Sub(a, b) => a.partialEval - b.partialEval
-    case Mul(a, b) => a.partialEval * b.partialEval
-    case Div(a, b) => a.partialEval / b.partialEval
+  def eval: Long = this match
+    case Add(a, b) => a.eval + b.eval
+    case Sub(a, b) => a.eval - b.eval
+    case Mul(a, b) => a.eval * b.eval
+    case Div(a, b) => a.eval / b.eval
     case Val(n) => n
     case Var => ???
-
-  def simplify: Exp = this match
-    case Add(a, b) if !hasVar => Val(this.partialEval)
-    case Sub(a, b) if !hasVar => Val(this.partialEval)
-    case Mul(a, b) if !hasVar => Val(this.partialEval)
-    case Div(a, b) if !hasVar => Val(this.partialEval)
-    case Add(a, b) => Add(a.simplify, b.simplify)
-    case Sub(a, b) => Sub(a.simplify, b.simplify)
-    case Mul(a, b) => Mul(a.simplify, b.simplify)
-    case Div(a, b) => Div(a.simplify, b.simplify)
-    case func => func
 
 case class Add(a: Exp, b: Exp) extends Exp
 case class Sub(a: Exp, b: Exp) extends Exp
@@ -64,18 +53,21 @@ case class Div(a: Exp, b: Exp) extends Exp
 case class Val(n: Long) extends Exp
 case object Var extends Exp
 
-def solve(e: Exp, r: Long): Long = e match
-  case Add(Val(n), l) => solve(l, r - n)
-  case Sub(Val(n), l) => solve(l, n - r)
-  case Mul(Val(n), l) => solve(l, r / n)
-  case Div(Val(n), l) => solve(l, n / r)
-  case Add(l, Val(n)) => solve(l, r - n)
-  case Sub(l, Val(n)) => solve(l, r + n)
-  case Mul(l, Val(n)) => solve(l, r / n)
-  case Div(l, Val(n)) => solve(l, r * n)
-  case Val(n) => ???
-  case Var => r
+case class Eqn(lhs: Exp, rhs: Exp):
+  def solve = Iterator.iterate(this) { case Eqn(lhs, rhs) =>
+    (lhs: @unchecked) match
+      case Add(a, b) if a.hasVar => Eqn(a, Sub(rhs, b))
+      case Sub(a, b) if a.hasVar => Eqn(a, Add(rhs, b))
+      case Mul(a, b) if a.hasVar => Eqn(a, Div(rhs, b))
+      case Div(a, b) if a.hasVar => Eqn(a, Mul(rhs, b))
+      case Add(a, b) if b.hasVar => Eqn(b, Sub(rhs, a))
+      case Sub(a, b) if b.hasVar => Eqn(b, Sub(a, rhs))
+      case Mul(a, b) if b.hasVar => Eqn(b, Div(rhs, a))
+      case Div(a, b) if b.hasVar => Eqn(b, Div(a, rhs))
+      case Var => Eqn(lhs, rhs)
+      case _ if rhs.hasVar => Eqn(rhs, lhs)
+  } collectFirst { case Eqn(Var, rhs) => rhs.eval }
 
-val s"$left + $right" = yells("root"): @unchecked
+val s"$left $_ $right" = yells("root"): @unchecked
 
-val ans2 = solve(parse(left).simplify, parse(right).partialEval)
+val ans2 = Eqn(parse(left), parse(right)).solve.get
