@@ -1,43 +1,25 @@
 val input = io.Source.fromResource("2022/day-21.txt").getLines().toVector
 
-enum Yell:
-  case Eql(a: String, b: String)
-  case Add(a: String, b: String)
-  case Sub(a: String, b: String)
-  case Mul(a: String, b: String)
-  case Div(a: String, b: String)
-  case Num(n: Long)
-  case Hum
-
-extension(yell: Yell)
-  def toExp: Exp = yell match
-    case Yell.Eql(a, b) => ???
-    case Yell.Add(a, b) => Add(adj(a).toExp, adj(b).toExp)
-    case Yell.Sub(a, b) => Sub(adj(a).toExp, adj(b).toExp)
-    case Yell.Mul(a, b) => Mul(adj(a).toExp, adj(b).toExp)
-    case Yell.Div(a, b) => Div(adj(a).toExp, adj(b).toExp)
-    case Yell.Num(n) => Val(n)
-    case Yell.Hum => Var
-
-val adj: Map[String, Yell] = input.map {
-  case s"root: $a + $b" => "root" -> Yell.Eql(a, b)
-  case s"$name: $a + $b" => name -> Yell.Add(a, b)
-  case s"$name: $a - $b" => name -> Yell.Sub(a, b)
-  case s"$name: $a * $b" => name -> Yell.Mul(a, b)
-  case s"$name: $a / $b" => name -> Yell.Div(a, b)
-  case s"humn: $n" => "humn" -> Yell.Hum
-  case s"$name: $n" => name -> Yell.Num(n.toLong)
+val yells: Map[String, String] = input.map {
+  case s"$name: $op" => name -> op
 }.toMap
 
-def eval(name: String)(h: Long): Long =
-  adj(name) match
-    case Yell.Add(a, b) => eval(a)(h) + eval(b)(h)
-    case Yell.Sub(a, b) => eval(a)(h) - eval(b)(h)
-    case Yell.Mul(a, b) => eval(a)(h) * eval(b)(h)
-    case Yell.Div(a, b) => eval(a)(h) / eval(b)(h)
-    case Yell.Hum => h
-    case Yell.Num(n) => n
-    case Yell.Eql(_, _) => ???
+def eval(name: String): Long = yells(name) match
+  case s"$a + $b" => eval(a) + eval(b)
+  case s"$a - $b" => eval(a) - eval(b)
+  case s"$a * $b" => eval(a) * eval(b)
+  case s"$a / $b" => eval(a) / eval(b)
+  case n => n.toLong
+
+val ans1 = eval("root")
+
+def parse(name: String): Exp =
+  if name == "humn" then Var else yells(name) match
+    case s"$a + $b" => Add(parse(a), parse(b))
+    case s"$a - $b" => Sub(parse(a), parse(b))
+    case s"$a * $b" => Mul(parse(a), parse(b))
+    case s"$a / $b" => Div(parse(a), parse(b))
+    case n => Val(n.toLong)
 
 sealed trait Exp:
   override def toString: String = this match
@@ -82,39 +64,18 @@ case class Div(a: Exp, b: Exp) extends Exp
 case class Val(n: Long) extends Exp
 case object Var extends Exp
 
-val Yell.Eql(left, right) = adj("root")
-
-println(adj(left).toExp.simplify)
-println(adj(right).toExp.simplify)
-// val eqn = Eqn(adj(left).toExp.simplify, adj(right).toExp.simplify)
-
-def balance(e: Exp, r: Long): Long = e match
-  case Add(Val(n), l) => balance(l, (r - n))
-  case Sub(Val(n), l) => balance(l, -(r - n))
-  case Mul(Val(n), l) => balance(l, (r / n))
-  case Div(Val(n), l) => balance(l, n / r)
-  case Add(l, Val(n)) => balance(l, (r - n))
-  case Sub(l, Val(n)) => balance(l, (r + n))
-  case Mul(l, Val(n)) => balance(l, (r / n))
-  case Div(l, Val(n)) => balance(l, r * n)
+def solve(e: Exp, r: Long): Long = e match
+  case Add(Val(n), l) => solve(l, r - n)
+  case Sub(Val(n), l) => solve(l, n - r)
+  case Mul(Val(n), l) => solve(l, r / n)
+  case Div(Val(n), l) => solve(l, n / r)
+  case Add(l, Val(n)) => solve(l, r - n)
+  case Sub(l, Val(n)) => solve(l, r + n)
+  case Mul(l, Val(n)) => solve(l, r / n)
+  case Div(l, Val(n)) => solve(l, r * n)
   case Val(n) => ???
   case Var => r
 
-val Val(r) = adj(right).toExp.simplify
+val s"$left + $right" = yells("root"): @unchecked
 
-val ans2 = balance(adj(left).toExp.simplify, r)
-
-// val ans1 = eval("root").toLong
-// val adj("root")
-
-def eql(human: Long): Long =
-  val Yell.Eql(left, right) = adj("root")
-  eval(left)(human) - eval(right)(human)
-
-
-
-// eql(200_000_000_000L)
-
-
-
-//
+val ans2 = solve(parse(left).simplify, parse(right).partialEval)
