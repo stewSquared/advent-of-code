@@ -68,21 +68,271 @@ case class Point(x: Int, y: Int):
     case Dir.W => w
     case Dir.N => n
 
-def move(p: Point, d: Dir): Point =
-  val next = p.move(d)
-  val wrapped: Point = if map.contains(next) then next else
-    println("wrapping around")
-    d match
-      case Dir.E => map.keys.filter(_.y == next.y).minBy(_.x)
-      case Dir.S => map.keys.filter(_.x == next.x).minBy(_.y)
-      case Dir.W => map.keys.filter(_.y == next.y).maxBy(_.x)
-      case Dir.N => map.keys.filter(_.x == next.x).maxBy(_.y)
+// enum Edge:
+//   case Top, Bot, Left, Right
 
-  // println(s"attempting to move to $wrapped")
+case class Area(xRange: Range, yRange: Range):
+  def contains(p: Point) = xRange.contains(p.x) && yRange.contains(p.y)
+  val edge: Map[Dir, Seq[Point]] = Map(
+    Dir.E -> yRange.map(Point(xRange.max, _)),
+    Dir.S -> xRange.map(Point(_, yRange.max)),
+    Dir.W -> yRange.map(Point(xRange.min, _)),
+    Dir.N -> xRange.map(Point(_, yRange.min))
+  )
 
-  map(wrapped) match
-    case '#' => p
-    case '.' => wrapped
+enum Face(xRange: Range, yRange: Range):
+  case D extends Face(51 to 100, 1 to 50)
+  case R extends Face(101 to 150, 1 to 50)
+  case F extends Face(51 to 100, 51 to 100)
+  case U extends Face(51 to 100, 101 to 150)
+  case L extends Face(1 to 50, 101 to 150)
+  case B extends Face(1 to 50, 151 to 200)
+
+  def contains(p: Point) = xRange.contains(p.x) && yRange.contains(p.y)
+  val edge: Map[Dir, Seq[Point]] = Map(
+    Dir.E -> yRange.map(Point(xRange.max, _)),
+    Dir.S -> xRange.map(Point(_, yRange.max)),
+    Dir.W -> yRange.map(Point(xRange.min, _)),
+    Dir.N -> xRange.map(Point(_, yRange.min))
+  )
+
+object Face:
+  def containing(p: Point): Face =
+    Face.values.find(_.contains(p)).get
+
+println(Face.D)
+
+var p = Point(51, 1)
+Face.containing(p)
+var d = Dir.N
+p.move(d)
+var d2 = move(p, d)._2
+var p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+2 + 2
+
+p = Point(51, 1)
+d = Dir.W
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(51,51)
+d = Dir.W
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(100,51)
+d = Dir.E
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(101,1)
+d = Dir.N
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(150,1)
+d = Dir.E
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(150,50)
+d = Dir.S
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(100,101)
+d = Dir.E
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(100,150)
+d = Dir.S
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(1,101)
+d = Dir.N
+Face.containing(p)
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(1,101)
+d = Dir.W
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(1,151)
+d = Dir.W
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(1,200)
+d = Dir.S
+d2 = move(p, d, false)._2
+p2 = Face.containing(move(p, d, false)._1)
+move(p, d)._1
+println((p2, d2))
+
+p = Point(50,200)
+d = Dir.E
+d2 = move(p, d)._2
+p2 = Face.containing(move(p, d)._1)
+move(p, d)._1
+println((p2, d2))
+
+def testLooping(p: Point): Unit =
+  for d <- Dir.values do
+    println(s"moving 200 in $d")
+    val end = List.iterate((p, d), 200 + 1)(move(_,_,false)).last
+    assert((p, d) == end, s"$end was not ${p -> d}")
+
+testLooping(Point(51,1))
+
+def move(p: Point, dir: Dir, blocking: Boolean = true): (Point, Dir) =
+  // val next = p.move(d)
+  // val face = Cube.face(p)
+  val face = Face.containing(p)
+  val (nextDir, nextPos) = (face, dir) match
+    case (Face.R, Dir.E) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.U.edge(Dir.E).reverse // pass
+      Dir.W -> edge.zip(target).toMap.apply(p)
+    case (Face.R, Dir.S) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.F.edge(Dir.E)
+      Dir.W -> edge.zip(target).toMap.apply(p)
+    case (Face.R, Dir.N) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.B.edge(Dir.S)
+      Dir.N -> edge.zip(target).toMap.apply(p)
+    case (Face.D, Dir.N) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.B.edge(Dir.W)
+      Dir.E -> edge.zip(target).toMap.apply(p)
+    case (Face.D, Dir.W) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.L.edge(Dir.W).reverse // pass
+      Dir.E -> edge.zip(target).toMap.apply(p)
+    case (Face.F, Dir.W) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.L.edge(Dir.N)
+      Dir.S -> edge.zip(target).toMap.apply(p)
+    case (Face.F, Dir.E) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.R.edge(Dir.S)
+      Dir.N -> edge.zip(target).toMap.apply(p)
+    case (Face.U, Dir.E) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.R.edge(Dir.E).reverse // pass
+      Dir.W -> edge.zip(target).toMap.apply(p)
+    case (Face.U, Dir.S) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.B.edge(Dir.E)
+      Dir.W -> edge.zip(target).toMap.apply(p)
+    case (Face.L, Dir.N) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.F.edge(Dir.W)
+      Dir.E -> edge.zip(target).toMap.apply(p)
+    case (Face.L, Dir.W) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.D.edge(Dir.W).reverse // pass
+      Dir.E -> edge.zip(target).toMap.apply(p)
+    case (Face.B, Dir.E) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.U.edge(Dir.S)
+      Dir.N -> edge.zip(target).toMap.apply(p)
+    case (Face.B, Dir.S) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.R.edge(Dir.N)
+      Dir.S -> edge.zip(target).toMap.apply(p)
+    case (Face.B, Dir.W) if face.edge(dir).contains(p) =>
+      assert(!map.contains(p.move(dir)))
+      val edge = face.edge(dir)
+      val target = Face.D.edge(Dir.N)
+      Dir.S -> edge.zip(target).toMap.apply(p)
+    case _ =>
+      assert(map.contains(p.move(dir)))
+      // println("not wrapping")
+      dir -> p.move(dir)
+
+
+  map(nextPos) match
+    case '#' if blocking =>
+      println(s"blocked attempting to go to $nextPos on ${Face.containing(nextPos)}")
+      p -> dir
+    case '.' =>
+      if (Face.containing(nextPos) != Face.containing(p)) {
+        println(s"wrapping from $p on ${Face.containing(p)} to $nextPos on ${Face.containing(nextPos)}")
+      }
+      nextPos -> nextDir
+    case _ if !blocking =>
+      if (Face.containing(nextPos) != Face.containing(p)) {
+        println(s"wrapping from ${Face.containing(p)} to ${Face.containing(nextPos)}")
+      }
+      nextPos -> nextDir
+
+  // val wrapped: Point = if map.contains(next) then next else
+  //   println("wrapping around")
+  //   d match
+  //     case Dir.E => map.keys.filter(_.y == next.y).minBy(_.x)
+  //     case Dir.S => map.keys.filter(_.x == next.x).minBy(_.y)
+  //     case Dir.W => map.keys.filter(_.y == next.y).maxBy(_.x)
+  //     case Dir.N => map.keys.filter(_.x == next.x).maxBy(_.y)
+  // map(wrapped) match
+  //   case '#' => p -> d
+  //   case '.' => wrapped -> d
+
+// def move(p: Point, d: Dir): (Point, Dir) =
+//   val next = p.move(d)
+//   val wrapped: Point = if map.contains(next) then next else
+//     println("wrapping around")
+//     d match
+//       case Dir.E => map.keys.filter(_.y == next.y).minBy(_.x)
+//       case Dir.S => map.keys.filter(_.x == next.x).minBy(_.y)
+//       case Dir.W => map.keys.filter(_.y == next.y).maxBy(_.x)
+//       case Dir.N => map.keys.filter(_.x == next.x).maxBy(_.y)
+
+//   map(wrapped) match
+//     case '#' => p -> d
+//     case '.' => wrapped -> d
 
 val startPoint = map.keys.filter(_.y == 1).minBy(_.x)
 
@@ -98,10 +348,10 @@ val states = LazyList.unfold((startPoint, Dir.E, path)) {
     Some((pos, nextDir) -> (pos, nextDir, remaining.tail))
   case (pos, dir, remaining) if remaining.head.isDigit =>
     val (nextSteps, afterStep) = remaining.span(_.isDigit)
-    println(s"moving $dir $nextSteps from $pos")
-    val nextPos = List.iterate(pos, nextSteps.toInt + 1)(move(_, dir)).last
-    println(s"landed at $nextPos")
-    Some((nextPos, dir) -> (nextPos, dir, afterStep))
+    println(s"moving $dir $nextSteps from $pos on ${Face.containing(pos)}")
+    val (nextPos, nextDir) = List.iterate((pos, dir), nextSteps.toInt + 1)(move(_, _)).last
+    println(s"landed at $nextPos on ${Face.containing(nextPos)}")
+    Some((nextPos, nextDir) -> (nextPos, nextDir, afterStep))
   case _ => ???
 }
 
@@ -112,7 +362,12 @@ println(path)
 states foreach println
 
 val ans1 = 1000 * finalPos.y + 4 * finalPos.x + finalDir.ordinal
-
+// 7548 too low
+// 106242 too low
+// 134329 too low
+// 179091
+// 187115 <- WRONG!
+// 194078 too high
 
 // pathSteps foreach println
 
