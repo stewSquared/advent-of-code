@@ -13,33 +13,37 @@ case class Point(x: Int, y: Int):
   def s = copy(y = y + 1)
   def w = copy(x = x - 1)
   def e = copy(x = x + 1)
-  def surrounding = Set(e, s, n, w, s.e, s.w, n.w, n.e)
+  def surrounding = List(n, s, w, e, n.w, n.e, s.w, s.e)
 
 def propose(elf: Point, elves: Set[Point], round: Int): Option[Point] =
   import elf.*
   def tryMoving =
-    def goNorth = Option.when(Set(n, n.e, n.w).intersect(elves).isEmpty)(n)
-    def goSouth = Option.when(Set(s, s.e, s.w).intersect(elves).isEmpty)(s)
-    def goWest = Option.when(Set(w, n.w, s.w).intersect(elves).isEmpty)(w)
-    def goEast = Option.when(Set(e, n.e, s.e).intersect(elves).isEmpty)(e)
+    def goNorth = Option.unless(List(n, n.w, n.e).exists(elves))(n)
+    def goSouth = Option.unless(List(s, s.w, s.e).exists(elves))(s)
+    def goWest = Option.unless(List(w, n.w, s.w).exists(elves))(w)
+    def goEast = Option.unless(List(e, n.e, s.e).exists(elves))(e)
     round % 4 match
       case 0 => goNorth orElse goSouth orElse goWest orElse goEast
       case 1 => goSouth orElse goWest orElse goEast orElse goNorth
       case 2 => goWest orElse goEast orElse goNorth orElse goSouth
       case 3 => goEast orElse goNorth orElse goSouth orElse goWest
-  Option.unless(surrounding.intersect(elves).isEmpty)(tryMoving).flatten
+  if surrounding.exists(elves) then tryMoving else None
 
-def next(elves: Set[Point], round: Int): Set[Point] =
+def next(elves: Set[Point], round: Int): Option[Set[Point]] =
   val proposals = elves
     .groupBy(propose(_, elves, round))
     .collect {
       case (Some(dest), starts) if starts.sizeIs == 1 =>
         starts.head -> dest
     }
-  val (starts, dests) = proposals.toSet.unzip
-  elves.diff(starts).union(dests)
+  Option.when(proposals.nonEmpty) {
+    val (starts, dests) = proposals.toSet.unzip
+    elves.diff(starts).union(dests)
+  }
 
-def rounds = LazyList.from(0).scanLeft(elvesStart)(next)
+def rounds = LazyList.from(0).scanLeft(Option(elvesStart)) {
+  case (elves, round) => elves.flatMap(next(_, round))
+}.takeWhile(_.nonEmpty).flatten
 
 val roundTen = rounds(10)
 
@@ -48,4 +52,4 @@ val yRange = roundTen.map(_.y).min to roundTen.map(_.y).max
 
 val ans1 = xRange.size * yRange.size - roundTen.size
 
-val ans2 = 1 + rounds.zip(rounds.tail).indexWhere(_ == _)
+val ans2 = rounds.size
