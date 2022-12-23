@@ -29,7 +29,7 @@ def propose(elf: Point, elves: Set[Point], round: Int): Option[Point] =
       case 3 => goEast orElse goNorth orElse goSouth orElse goWest
   if surrounding.exists(elves) then tryMoving else None
 
-def next(elves: Set[Point], round: Int): Option[Set[Point]] =
+def rounds = LazyList.unfold(elvesStart -> 0) { case (elves, round) =>
   val proposals = elves
     .groupBy(propose(_, elves, round))
     .collect {
@@ -38,18 +38,16 @@ def next(elves: Set[Point], round: Int): Option[Set[Point]] =
     }
   Option.when(proposals.nonEmpty) {
     val (starts, dests) = proposals.toSet.unzip
-    elves.diff(starts).union(dests)
+    val next = elves.diff(starts).union(dests)
+    next -> (next, round + 1)
   }
+}
 
-def rounds = LazyList.from(0).scanLeft(Option(elvesStart)) {
-  case (elves, round) => elves.flatMap(next(_, round))
-}.takeWhile(_.nonEmpty).flatten
-
-val roundTen = rounds(10)
+val roundTen = rounds(9)
 
 val xRange = roundTen.map(_.x).min to roundTen.map(_.x).max
 val yRange = roundTen.map(_.y).min to roundTen.map(_.y).max
 
 val ans1 = xRange.size * yRange.size - roundTen.size
 
-val ans2 = rounds.size
+val ans2 = 1 + rounds.size
