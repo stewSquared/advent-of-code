@@ -16,22 +16,18 @@ case class State(clock: Int, x: Int, pixel: Point, crt: Map[Point, Boolean]):
     case "noop" => draw.tick
     case s"addx $v" => draw.tick.draw.addX(v.toInt).tick
 
-def signalStrengths(cycles: List[Int], states: List[State], prevX: Int, ans: List[Int]): List[Int] =
-  (cycles, states) match
-    case (Nil, _) => ans
-    case (c::cs, s::ss) if s.clock == c =>
-      signalStrengths(cs, ss, prevX = s.x, (s.x * c) :: ans)
-    case (c::cs, s::ss) if s.clock > c =>
-      signalStrengths(cs, ss, prevX = s.x, (prevX * c) :: ans)
-    case (_, s::ss) =>
-       signalStrengths(cycles, ss, prevX = s.x, ans)
-    case (_, Nil) => ans
-
 val start = State(clock = 1, x = 1, pixel = Point(0,0), crt = Map.empty)
 val states = input.scanLeft(start)(_ step _)
 val cycles = List(20, 60, 100, 140, 180, 220)
 
-val ans1 = signalStrengths(cycles, states, 1, Nil).sum
+val signalStrengths = List.unfold(cycles, states) { case (cycles, states) =>
+  cycles.headOption.map { cycle =>
+    val (before, after) = states.span(_.clock <= cycle)
+    before.last.x * cycle -> (cycles.tail, after)
+  }
+}
+
+val ans1 = signalStrengths.sum
 
 val finalCrt = states.last.crt
 
