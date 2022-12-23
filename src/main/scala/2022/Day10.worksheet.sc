@@ -6,17 +6,17 @@ case class State(clock: Int, x: Int, pixel: Point, crt: Map[Point, Boolean]):
   def nextPixel = pixel match
     case Point(39, 5) => Point(0, 0)
     case Point(39, y) => Point(0, y + 1)
-    case Point(x, y) => Point(x + 1, y)
+    case Point(x, y)  => pixel.copy(x + 1)
 
   def tick = copy(clock + 1, pixel = nextPixel)
   def draw = copy(crt = crt.updated(pixel, (pixel.x - x).abs <= 1))
   def addX(v: Int) = copy(x = x + v.toInt)
 
   def step(inst: String): State = inst match
-    case "noop" => draw.tick
+    case "noop"     => draw.tick
     case s"addx $v" => draw.tick.draw.addX(v.toInt).tick
 
-val start = State(clock = 1, x = 1, pixel = Point(0,0), crt = Map.empty)
+val start = State(clock = 1, x = 1, pixel = Point(0, 0), crt = Map.empty)
 val states = input.scanLeft(start)(_ step _)
 val cycles = List(20, 60, 100, 140, 180, 220)
 
