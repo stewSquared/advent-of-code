@@ -1,4 +1,4 @@
-import math.Ordering.Implicits._
+import math.Ordering.Implicits.given
 
 val input = io.Source.fromResource("2022/day-13.txt").getLines().toVector
 
@@ -12,26 +12,20 @@ enum Packet:
 
 object Packet:
   def parse(raw: String): Packet = raw match
-    case s"[$packets]" => PList(parseMulti(packets)*)
+    case s"[$packets]" => PList(splitTopLevel(packets).map(parse)*)
     case num           => Num(num.toInt)
 
-  def parseMulti(commaSeparated: String): List[Packet] = commaSeparated match
-    case s if s.startsWith("[") =>
-      splitMatching(s) match
-        case (list, s",$packets") => parse(list) :: parseMulti(packets)
-        case (list, _)            => parse(list) :: Nil
-    case ""               => Nil
-    case s"$num,$packets" => parse(num) :: parseMulti(packets)
-    case num              => parse(num) :: Nil
-
-  def splitMatching(str: String): (String, String) =
-    val depths = str.iterator.scanLeft(0) {
+  def splitTopLevel(commaSeparated: String): Seq[String] =
+    val depths = commaSeparated.iterator.scanLeft(0) {
       case (depth, '[') => depth + 1
       case (depth, ']') => depth - 1
       case (depth, _)   => depth
     }
-    val balanced = depths.indexOf(0, from = 1)
-    str.splitAt(balanced)
+    val semicolonSep = depths.zip(commaSeparated).map {
+      case (0, ',') => ';'
+      case (d, c)   => c
+    }
+    semicolonSep.mkString.split(';').filter(_.nonEmpty).toSeq
 
   given Ordering[Packet] with
     def compare(left: Packet, right: Packet): Int = (left, right) match
