@@ -1,33 +1,16 @@
 val input = io.Source.fromResource("2022/day-25.txt").getLines().toVector
 
-def toDigit(c: Char): Int = c match
-  case '-' => -1
-  case '=' => -2
-  case d => d.asDigit
+def mod(n: Long) = (n + 2) % 5 - 2
 
 def toNum(snafu: String): Long =
-  snafu.reverse.zipWithIndex.map {
-    case (c, i) => math.pow(5, i).toLong * toDigit(c)
-  }.sum
+  snafu.foldLeft(0L)((n, c) => n * 5 + mod("012=-".indexOf(c)))
 
-def toSnafu(long: Long): String =
-  val (number -> carry) = BigInt(long).toString(5).reverse.foldLeft("" -> false) {
-    case ((number, carry), digit) =>
-      println(digit)
-      digit.asDigit + (if carry then 1 else 0) match
-        case 5 => ("0" + number) -> true
-        case 4 => ("-" + number) -> true
-        case 3 => ("=" + number) -> true
-        case n => (n.toString + number) -> false
+def toSnafu(num: Long): String =
+  val snits = Iterator.unfold(num) { n =>
+    Option.when(n > 0) {
+      "012=-"((n % 5).toInt) -> (n - mod(n)) / 5
+    }
   }
-  if carry then "1" + number else number
+  snits.mkString.reverse
 
-input.map(toNum).sum
 val ans = toSnafu(input.map(toNum).sum)
-toNum("122-0==-=211==-2-200")
-// 122-0==-=211==-2-200
-
-var n = 976
-toSnafu(n)
-toNum(toSnafu(n))
-BigInt(n).toString(5)
