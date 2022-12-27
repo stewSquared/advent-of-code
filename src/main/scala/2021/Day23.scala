@@ -166,7 +166,7 @@ object Burrow:
     Burrow(hallway = Map.empty, rooms, minimumCost)
 
 @main def day23(): Unit =
-  import collection.mutable.PriorityQueue
+  import collection.mutable.{PriorityQueue, Set}
   import util.chaining.*
   import Pos.*
 
@@ -181,9 +181,12 @@ object Burrow:
     (ins ++ outs).flatMap(burrow.move).toList
 
   var visiting = initial
+  val visited = Set(initial)
   val toVisit = PriorityQueue(initial)
   while !visiting.organized do
-    searchFrom(visiting).foreach(toVisit.enqueue(_))
+    for b <- searchFrom(visiting).filterNot(visited) do
+      visited += b
+      toVisit.enqueue(b)
     visiting = toVisit.dequeue()
 
   println(visiting.cost)
