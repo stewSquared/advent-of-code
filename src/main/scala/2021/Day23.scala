@@ -18,7 +18,7 @@ case class Room(amphType: Amph, occupants: List[Amph], capacity: Int):
   def organized = full && !hasStrangers
 
   def nextAmph =
-    Option.when(hasStrangers)(occupants.headOption).flatten
+    if hasStrangers then occupants.headOption else None
 
   def admits(a: Amph) = !(full || hasStrangers) && a == amphType
 
@@ -41,14 +41,8 @@ object Pos:
   given Conversion[Entry, Hallway] = _.pos
   given Conversion[Space, Hallway] = _.pos
 
-  sealed trait Space extends Pos { self: Hallway =>
-    def ord: Int = self.ordinal
-    def pos: Hallway = self
-  }
-  sealed trait Entry extends Pos { self: Hallway =>
-    def ord: Int = self.ordinal
-    def pos: Hallway = self
-  }
+  sealed trait Space extends Pos { self: Hallway => def pos: Hallway = self }
+  sealed trait Entry extends Pos { self: Hallway => def pos: Hallway = self }
 
   object Space:
     val values = Array[Space](L2, L1, AB, BC, CD, R1, R2)
@@ -82,13 +76,12 @@ object Pos:
       a <- Entry.values
     yield Out(a, p)
 
-  // def entrance(room: Room): Entry =
 import Pos.*
 
 case class Burrow(hallway: Map[Space, Amph], rooms: Map[Entry, Room], cost: Int):
   def show: String =
     val hallString = Pos.Hallway.values.map(p => hallway.map(identity).toMap.get(p).fold(".")(_.toString)).mkString
-    val occupants = rooms.toList.sortBy(_._1.ord).map(_._2)
+    val occupants = rooms.toList.sortBy(_._1.ordinal).map(_._2)
       .map(r => r.occupants.map(_.toString).reverse.padTo(r.capacity, ".").reverse)
     val roomString = occupants.transpose.collect {
       case List(a, b, c, d) => s"###$a#$b#$c#$d###"
@@ -97,7 +90,7 @@ case class Burrow(hallway: Map[Space, Amph], rooms: Map[Entry, Room], cost: Int)
         |#$hallString#
         |${roomString}
         |#############
-        |""".stripMargin// + roomStrings.mkString("\n")
+        |""".stripMargin
 
   def extraSteps(a: Amph, m: Pos.Move.Out): Int =
     val distOut = m.roomType.distanceTo(m.to)
@@ -112,8 +105,7 @@ case class Burrow(hallway: Map[Space, Amph], rooms: Map[Entry, Room], cost: Int)
   def blocked(p1: Pos.Hallway, p2: Pos.Hallway): Boolean =
     val List(left, right) = List(p1, p2).sortBy(_.ordinal)
     val spacesBetween = (left.ordinal + 1 until right.ordinal)
-    // println(s"checking range $spacesBetween")
-    hallway.keys.exists(p => spacesBetween.contains(p.ord))
+    hallway.keys.exists(p => spacesBetween.contains(p.ordinal))
 
   def occupied(pos: Space): Boolean = hallway.contains(pos)
 
