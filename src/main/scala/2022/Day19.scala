@@ -1,4 +1,9 @@
-val input = io.Source.fromResource("2022/day-19.txt").getLines().toList
+package `2022`
+
+val blueprints = io.Source.fromResource("2022/day-19.txt").getLines().map {
+  case s"$_ costs $oo ore.$_ costs $co ore.$_ costs $bo ore and $bc clay.$_ costs $go ore and $gb obsidian." =>
+    BluePrint(oo.toInt, co.toInt, bo.toInt, bc.toInt, go.toInt, gb.toInt)
+}.toList
 
 case class Materials(ore: Int, clay: Int, obs: Int, geode: Int):
   def nonNegative = (ore min clay min obs min geode) >= 0
@@ -18,9 +23,8 @@ case class BluePrint(
 
 case class State(mats: Materials, bots: Bots, bp: BluePrint, time: Int):
   assert(mats.nonNegative, s"have negative materials: $this")
-  // assert(time >= 0)
 
-  def collect(n: Int): State = copy(
+  def collectN(n: Int): State = copy(
     time = time - n,
     mats = mats.copy(
       ore = (mats.ore + bots.ore * n),
@@ -39,7 +43,7 @@ case class State(mats: Materials, bots: Bots, bp: BluePrint, time: Int):
     lazy val missingOre = (bp.oreBotOreCost - mats.ore).max(0)
     lazy val turnsNeeded = (missingOre + bots.ore - 1) / bots.ore
     Option.when(bots.ore < bp.maxOre && turnsNeeded + 1 < time) {
-      collect(turnsNeeded).collect(1).buildOreBot
+      collectN(turnsNeeded + 1).buildOreBot
     }
 
   def buildClayBot: State = copy(
@@ -51,7 +55,7 @@ case class State(mats: Materials, bots: Bots, bp: BluePrint, time: Int):
     lazy val missingOre = (bp.clayBotOreCost - mats.ore).max(0)
     lazy val turnsNeeded = (missingOre + bots.ore - 1) / bots.ore
     Option.when(bots.clay < bp.clayCost  && turnsNeeded + 1 < time) {
-      collect(turnsNeeded).collect(1).buildClayBot
+      collectN(turnsNeeded + 1).buildClayBot
     }
 
   def buildObsBot: State = copy(
@@ -71,7 +75,7 @@ case class State(mats: Materials, bots: Bots, bp: BluePrint, time: Int):
     Option.when(
       bots.obs < bp.obsCost && bots.clay >= 1 && turnsNeeded + 1 < time
     ) {
-      collect(turnsNeeded).collect(1).buildObsBot
+      collectN(turnsNeeded + 1).buildObsBot
     }
 
   def buildGeodeBot = copy(
@@ -89,11 +93,9 @@ case class State(mats: Materials, bots: Bots, bp: BluePrint, time: Int):
     lazy val turnsNeededB = (missingObs + bots.obs - 1) / bots.obs
     lazy val turnsNeeded = turnsNeededO max turnsNeededB
     Option.when(bots.obs >= 1 && turnsNeeded + 1 < time) {
-      collect(turnsNeeded).collect(1).buildGeodeBot
+      collectN(turnsNeeded + 1).buildGeodeBot
     }
 
-  // this needs to be greatly limited
-  // def saveMoney: Option[State] = Some(this.collect)
 
   def next: List[State] =
     if time <= 0 then List(this)
@@ -101,13 +103,8 @@ case class State(mats: Materials, bots: Bots, bp: BluePrint, time: Int):
       val createBot =
         List(queueOreBot, queueClayBot, queueObs, queueGeode).flatten
       if createBot.isEmpty then
-        List(this.collect(time))
+        List(this.collectN(time))
       else createBot
-
-val blueprints = input.map {
-  case s"$_ costs $oo ore.$_ costs $co ore.$_ costs $bo ore and $bc clay.$_ costs $go ore and $gb obsidian." =>
-    BluePrint(oo.toInt, co.toInt, bo.toInt, bc.toInt, go.toInt, gb.toInt)
-}
 
 def search(start: State) =
   import collection.mutable.{Set, Map, PriorityQueue, Queue}
@@ -121,54 +118,17 @@ def search(start: State) =
 
   finalStates.toSet
 
-val ans1 = blueprints
-  .map(State(Materials(0, 0, 0, 0), Bots(1, 0, 0, 0), _, 24))
-  .zipWithIndex
-  .map { (state, i) =>
-    search(state).map(_.mats.geode).max * (i + 1)
-  }.sum
+@main def day19 =
+  val ans1 = blueprints
+    .map(State(Materials(0, 0, 0, 0), Bots(1, 0, 0, 0), _, 24))
+    .zipWithIndex
+    .map { (state, i) =>
+      search(state).map(_.mats.geode).max * (i + 1)
+    }.sum
+  println(ans1)
 
-// val ans2 = blueprints.take(3)
-//   .map(State(Materials(0, 0, 0, 0), Bots(1, 0, 0, 0), _, 32))
-//   .map(search(_).map(_.mats.geode).max)
-  // .product
-
-val bp2 = State(Materials(0, 0, 0, 0), Bots(1, 0, 0, 0), blueprints(1), 32)
-
-search(bp2).map(_.mats.geode).max
-
-
-// tests
-
-def sort(states: Seq[State]) =
-  states.sortBy(s => (-s.mats.geode, -s.mats.obs, -s.mats.clay, -s.mats.ore))
-
-val bp = blueprints(0)
-
-bp.clayCost
-bp.obsCost
-
-val start = State(Materials(0, 0, 0, 0), Bots(1, 0, 0, 0), bp, 24)
-
-start.next foreach println
-
-start.next(1).next foreach println
-
-start.queueClayBot.get.queueClayBot.get.queueClayBot.get
-
-// start
-// .queueClayBot.get
-// .queueClayBot.get
-// .queueClayBot.get
-// .queueObs.get
-// .queueClayBot.get
-// .queueObs.get
-// .queueGeode.get
-// .queueGeode.get
-// .collectN(3)
-// figure out how to wait out
-
-// search().count(_.time == 0)
-search(start).maxBy(_.mats.geode)
-search(start).size
-// still wrong, but search state much smaller
+  val ans2 = blueprints.take(3)
+    .map(State(Materials(0, 0, 0, 0), Bots(1, 0, 0, 0), _, 32))
+    .map(search(_).map(_.mats.geode).max)
+    .product
+  println(ans2)
