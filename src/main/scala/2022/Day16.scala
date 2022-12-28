@@ -32,8 +32,10 @@ def prune(room: String, canVisit: Map[String, Map[String, Int]]) =
     newCost = canVisit(room)(a) + canVisit(room)(b)
   yield
     assert(a != b, s"$a and $b were the same")
-    assert((canVisit(a).get(b)) == (canVisit(b).get(a)),
-      s"asymmetric costs $a $b \n ${canVisit(a).get(b)} \n ${canVisit(b).get(a)}")
+    assert(
+      (canVisit(a).get(b)) == (canVisit(b).get(a)),
+      s"asymmetric costs $a $b \n ${canVisit(a).get(b)} \n ${canVisit(b).get(a)}"
+    )
     (a, b) -> (newCost min oldCost)
 
   costs.foldLeft(removed) { case (acc, ((a, b), c)) =>
@@ -76,8 +78,8 @@ def fill(startNode: String): Map[String, Int] =
 
   cost.toMap
 
-val canVisit = bigNodes.iterator.map {
-  n => n -> fill(n)
+val canVisit = bigNodes.iterator.map { n =>
+  n -> fill(n)
 }.toMap
 
 case class PlayerState(visiting: String, time: Int):
@@ -85,7 +87,7 @@ case class PlayerState(visiting: String, time: Int):
 
 case class DoubleSearchState(
     state: PlayerState,
-    eState: PlayerState,
+    state2: PlayerState,
     time: Int,
     pressure: Int,
     flow: Int,
@@ -95,71 +97,74 @@ case class DoubleSearchState(
   def tick: DoubleSearchState =
     copy(
       state = state.copy(time = state.time - 1),
-      eState = eState.copy(time = eState.time - 1),
+      state2 = state2.copy(time = state2.time - 1),
       time = time - 1,
       pressure = pressure + flow,
       indent = indent + 1
     )
 
+  def openValve(room: String) =
+    // maybe assert player is in room
+    copy(flow = flow + flowRate(room), opened = opened + room)
+
   def increaseFlow(f: Int) = copy(flow = flow + f)
   def ignore(room: String) = copy(opened = opened + room)
+  def availableRooms(from: String): Option[Seq[(String, Int)]] =
+    val rooms = canVisit(from).filterKeys { r =>
+      !(opened(r) || r == state.visiting || r == state2.visiting)
+    }.toSeq
+    Option.when(rooms.nonEmpty)(rooms)
+
+  def send(nextRoom: String) =
+    // assert in room
+    val cost = canVisit(state.visiting)(nextRoom)
+    copy(state = PlayerState(nextRoom, cost))
+
+  def send2(nextRoom: String) =
+    // assert in room
+    val cost = canVisit(state2.visiting)(nextRoom)
+    copy(state2 = PlayerState(nextRoom, cost))
+
+  def stand = copy(state = state.copy(time = time))
+  def stand2 = copy(state2 = state2.copy(time = time))
 
   def next: List[DoubleSearchState] =
     // println(s"${"." * indent}$state $eState f:$flow p:$pressure t:$time")
     if time < 0 then ???
     else if time < 20 && (pressure + flow * time) < 1000 then Nil
+    // ^ this line is super important for performance
     else if time == 0 then Nil
     else
-      (state, eState) match
+      (state, state2) match
         case (s, e) if s.travelling && e.travelling => List(this.tick)
 
         case (PlayerState(room, 0), e) if e.travelling =>
-          val nextStates = for
-            (nextRoom, cost) <- canVisit.get(room).getOrElse(Map(room -> 100))
-            if nextRoom != e.visiting
-            if !opened(nextRoom)
-          yield this.tick
-            .increaseFlow(flowRate(room))
-            .ignore(room)
-            .copy(
-              state = PlayerState(nextRoom, cost)
-            )
+          val nextStates =
+            for
+              (nextRoom, cost) <- availableRooms(room).getOrElse(
+                Map(room -> 100)
+              )
+            yield this.tick.openValve(room).send(nextRoom)
 
-          if nextStates.nonEmpty then nextStates.toList
-          else
-            List(
-              this.tick
-                .increaseFlow(flowRate(room))
-                .ignore(room)
-                .copy(state = PlayerState(room, 100))
-            )
+          nextStates.toList
 
         case (s, PlayerState(room, 0)) if s.travelling =>
           val nextStates = for
-            (nextRoom, cost) <- canVisit.get(room).getOrElse(Map(room -> 100))
+            // (nextRoom, cost) <- canVisit.get(room).getOrElse(Map(room -> 100))
+            (nextRoom, cost) <- canVisit(room)
             if nextRoom != s.visiting
             if !opened(nextRoom)
-          yield this.tick
-            .increaseFlow(flowRate(room))
-            .ignore(room)
-            .copy(
-              eState = PlayerState(nextRoom, cost)
-            )
+          yield this.tick.openValve(room).send2(nextRoom)
 
           if nextStates.nonEmpty then nextStates.toList
-          else
-            List(
-              this.tick
-                .increaseFlow(flowRate(room))
-                .ignore(room)
-                .copy(eState = PlayerState(room, 100))
-            )
+          else List(this.tick.openValve(room).stand2)
 
         case (PlayerState(room, 0), PlayerState(room2, 0)) =>
           val nextStates = for
             (nextRoom, cost) <- canVisit.get(room).getOrElse(Map(room -> 100))
-            (nextRoom2, cost2) <- canVisit.get(room2).getOrElse(Map(room2 -> 100))
-
+            (nextRoom2, cost2) <- canVisit
+              .get(room2)
+              .getOrElse(Map(room2 -> 100))
             if !opened(nextRoom)
             if !opened(nextRoom2)
             if nextRoom != room2
@@ -167,62 +172,46 @@ case class DoubleSearchState(
             if nextRoom != nextRoom2
           yield
             if room == room2 && room2 == "AA" then
-              this.ignore("AA").copy(
-                state = PlayerState(nextRoom, cost),
-                eState = PlayerState(nextRoom2, cost2)
-              )
+              this
+                .ignore("AA")
+                .copy(
+                  state = PlayerState(nextRoom, cost),
+                  state2 = PlayerState(nextRoom2, cost2)
+                )
             else
               this.tick
-              .increaseFlow(flowRate(room))
-              .increaseFlow(flowRate(room2))
-              .ignore(room)
-              .ignore(room2)
-              .copy(
-                state = PlayerState(nextRoom, cost),
-                eState = PlayerState(nextRoom2, cost2)
-              )
+                .openValve(room)
+                .openValve(room2)
+                .send(nextRoom)
+                .send2(nextRoom2)
 
           if nextStates.nonEmpty then nextStates.toList
           else if canVisit(room).keySet == canVisit(room2).keySet then
             assert(canVisit(room).keys.size == 1)
-            // println(s"${canVisit(room)} - ${canVisit(room2)}")
             val sharedRoom = canVisit(room).keys.head
             val cost = canVisit(room)(sharedRoom)
             val cost2 = canVisit(room2)(sharedRoom)
-            val nextState = if cost < cost2 then
-              this.tick
-              .increaseFlow(flowRate(room))
-              .increaseFlow(flowRate(room2))
-              .ignore(room).ignore(room2).copy(
-                state = PlayerState(sharedRoom, canVisit(room)(sharedRoom)),
-                eState = PlayerState(room2, 100)
-              )
-            else
-              this.tick
-              .increaseFlow(flowRate(room))
-              .increaseFlow(flowRate(room2))
-              .ignore(room).ignore(room2).copy(
-                state = PlayerState(room, 100),
-                eState = PlayerState(sharedRoom, canVisit(room2)(sharedRoom)),
-              )
+            val nextState =
+              if cost < cost2 then
+                this.tick
+                  .openValve(room)
+                  .openValve(room2)
+                  .send(sharedRoom)
+                  .stand2
+              else
+                this.tick
+                  .openValve(room)
+                  .openValve(room2)
+                  .stand
+                  .send2(sharedRoom)
             List(nextState)
           else
             val bothStand = this.tick
-              .increaseFlow(flowRate(room))
-              .increaseFlow(flowRate(room2))
-              .ignore(room).ignore(room2).copy(
-                state = PlayerState(room, 100),
-                eState = PlayerState(room2, 100),
-              )
+              .openValve(room)
+              .openValve(room2)
+              .stand
+              .stand2
             List(bothStand)
-
-
-
-// canVisit("AA")
-
-// fullCosts("AA")
-// fullCosts("QN")("QE")
-// fullCosts("QE")("QN")
 
 val startState = DoubleSearchState(
   PlayerState("AA", 0),
