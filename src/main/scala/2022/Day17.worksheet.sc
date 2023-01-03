@@ -1,4 +1,3 @@
-
 val input = io.Source.fromResource("2022/day-17.txt").getLines().next()
 
 case class Point(x: Long, y: Long):
@@ -6,119 +5,68 @@ case class Point(x: Long, y: Long):
   def r = copy(x = x + 1)
   def d = copy(y = y - 1)
 
-enum Shape:
-  case Horz, Cross, Angle, Vert, Box
+enum Shape(points: List[Point]):
+  case Horz extends Shape((2 to 5).map(Point(_, 4)).toList)
+  case Cross extends Shape(List((3, 4), (2, 5), (3, 5), (4, 5), (3, 6)).map(Point(_, _)))
+  case Angle extends Shape(List((2, 4), (3, 4), (4, 4), (4, 5), (4, 6)).map(Point(_, _)))
+  case Vert extends Shape((4 to 7).map(Point(2, _)).toList)
+  case Box extends Shape(List((2, 4), (3, 4), (2, 5), (3, 5)).map(Point(_, _)))
 
-  def start(max: Long): Set[Point] = this match
-    case Horz => (2 to 5).map(x => Point(x, max + 4)).toSet
-    case Cross =>
-      (2 to 4).map(x => Point(x, max + 5)).toSet +
-        Point(3, max + 4) + Point(3, max + 6)
-    case Angle =>
-      (2 to 4).map(x => Point(x, max + 4)).toSet + Point(4, max + 5) + Point(
-        4,
-        max + 6
-      )
-    case Vert =>
-      ((max + 4) to (max + 7)).map(y => Point(2, y)).toSet
-    case Box =>
-      Set(
-        Point(2, max + 4),
-        Point(3, max + 4),
-        Point(2, max + 5),
-        Point(3, max + 5)
-      )
+  def start(max: Long) = this.points.map(p => p.copy(y = p.y + max))
 
-def touching(shape: Set[Point], rocks: Set[Point]) =
-  shape.map(_.d).exists(rocks)
+def jetAt(index: Int): Char = input(index % input.length)
 
-def fall(
-    shape: Shape,
-    rocks: Set[Point],
-    jets: LazyList[Char]
-): (Set[Point], LazyList[Char], Int) =
-  val start = shape.start(rocks.map(_.y).max)
+case class State(rocks: Set[Point], jets: Int, height: Long):
+  def drop(shape: Shape): State =
+    val start = shape.start(height)
+    val positions = Iterator.iterate((start, jets, true)) {
+      case (shape, i, false) => (shape, i, false)
+      case (shape, i, falling) =>
+        val pushed =
+          val dir = if jetAt(i) == '<' then shape.map(_.l) else shape.map(_.r)
+          val valid =
+            dir.forall(p => (0 until 7).contains(p.x) && !rocks(p))
+          if valid then dir else shape
+        val down = pushed.map(_.d)
+        val stopped = down.exists(rocks)
+        val next = if stopped then pushed else down
+        (next, i + 1, !stopped)
+    }
+    val (resting, i) = positions.dropWhile(_._3).next().take(2)
+    State(rocks.concat(resting), i, height.max(resting.maxBy(_.y).y))
 
-  def valid(shape: Set[Point]) =
-    val xRange = 0 until 7
-    shape.forall(p => xRange.contains(p.x)) && !shape.exists(rocks)
+def states =
+  val floor = (0 until 7).map(x => Point(x, 0)).toSet
+  val shapes = LazyList.continually(Shape.values).flatten
+  shapes.scanLeft(State(floor, 0, 0))(_ drop _)
 
-  val positions = Iterator.iterate((start, jets, true)) {
-    case (shape, jets, false) => (shape, jets, false)
-    case (shape, jets, falling) =>
-      val pushed = jets match
-        case '<' #:: _ =>
-          val left = shape.map(_.l)
-          if valid(left) then left else shape
-        case '>' #:: _ =>
-          val right = shape.map(_.r)
-          if valid(right) then right else shape
-
-      val down = pushed.map(_.d)
-      val stopped = down.exists(rocks)
-      val next = if stopped then pushed else down
-      (next, jets.tail, !stopped)
-  }
-  val falls = positions.takeWhile(_._3).size
-  val (resting, remainingJets, _) = positions.next()
-  (rocks.union(resting), remainingJets, falls)
-
-def shapes: Iterator[Shape] = Iterator.continually(Shape.values).flatten
-
-val floor = (0 until 7).map(x => Point(x, 0)).toSet
-
-val longIndices = Iterator.iterate(0L)(_ + 1L)
-
-def shapesWithIndices = shapes.zip(longIndices)
-
-def infiniteInput: LazyList[Char] = LazyList.continually(input).flatten
-
-1_000_000_000_000L / input.size
-
-def shapesTake(n: Long) = shapesWithIndices.takeWhile(_._2 < n).map(_._1)
-
-def states(n: Long) =
-  shapesTake(n).scanLeft[(Set[Point], LazyList[Char], Int)](floor, infiniteInput, 0) {
-    // case ((rocks, jets), shape) => fall(shape, rocks, jets)
-    case ((rocks, jets, used), shape) =>
-      val (nextRock, remainingJets, jetsUsed) = fall(shape, rocks, jets)
-      (nextRock, remainingJets, jetsUsed + used)
-  }
-
-def jetsUsed = states(3000).map(_._3).sliding(2).collect {
-  case Seq(l, r) => r - l
-}
+val heightAfter = states.map(_.height)
 
 def repeated(seq: Vector[Int]): (Int, Int) =
-  // @annotation.tailrec
   def search(i: Int): (Int, Int) =
     val hook = seq.slice(i, i + 50)
     val matchIndex = seq.indexOfSlice(hook)
     val repeating = seq.slice(matchIndex, i)
     if matchIndex < i && seq.drop(matchIndex).startsWith(repeating) then
       matchIndex -> repeating.size
-    else
-      search(i + 1)
+    else search(i + 1)
 
   search(0)
 
-val (repeatsStart, repeatSize) = repeated(jetsUsed.toVector)
-// 447, 1735
-
-// states(447).toList.last._1.map(_.y).max
-val heightBeforeRepeat = 675L
-
-// states(447 + 1735).toList.last._1.map(_.y).max
-val heightAfterFirst = 3456L
+val (cycleStart, period) =
+  val jetsUsed = states.map(_.jets)
+  val deltas = jetsUsed.tail.zip(jetsUsed).map(_ - _)
+  repeated(deltas.take(3000).toVector)
 
 val tril = 1_000_000_000_000L
+val extra = ((tril - cycleStart) % period).toInt
+val heightWithExtra = heightAfter(cycleStart + extra)
 
-val extra = (tril - repeatsStart) % repeatSize
-val numRepeats = (tril - repeatsStart) / repeatSize
+val numCycles = (tril - cycleStart) / period
 
-val repeatHeight = heightAfterFirst - heightBeforeRepeat
+val heightBeforeCycle = heightAfter(cycleStart)
+val heightAfterFirst = heightAfter(cycleStart + period)
+val cycleHeight = heightAfterFirst - heightBeforeCycle
 
-states(repeatsStart + extra).toList.last._1.map(_.y).max
-val heightWithExtra = 2972
-
-val ans2 =  heightWithExtra + (repeatHeight * numRepeats)
+val ans1 = heightAfter(2022)
+val ans2 = heightWithExtra + (cycleHeight * numCycles)
