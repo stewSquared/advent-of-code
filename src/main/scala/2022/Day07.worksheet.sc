@@ -47,10 +47,3 @@ val ans2 =
   val spaceAvailable = 70_000_000 - size(Dir.root)
   val spaceNeeded = 30000000 - spaceAvailable
   memo.values.toList.sorted.find(_ >= spaceNeeded).get
-
-contents.keysIterator
-  .map(d => size(d) -> d.pathString)
-  .filter(_._1 <= 100000)
-  .foreach { case (size, path) =>
-    println(s"$path $size")
-  }
