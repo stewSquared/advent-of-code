@@ -2,6 +2,11 @@
 
 My Solutions to [Advent of Code](https://adventofcode.com), written in Scala 3
 
+## Links
+- 📊 I have a [leaderboard](https://adventofcode.com/2023/leaderboard/private/view/1567548)! Code to join is `1567548-37bb9c26`
+- 🔴 I live stream solutions on [Twitch](https://twitch.tv/stewSquared) and [YouTube](https://youtube.com/@stewSquared).
+- 💬 Comments and questions? Come chat in [Discord](https://discord.gg/SgZemzbHPa).
+
 ## Usage
 
 Solutions are in Scala 3 worksheet files. To run these, files need to be opened in an editor running [Metals](https://scalameta.org/metals/). Intellij *might* also work, but I haven't used its worksheets.
