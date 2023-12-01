@@ -16,4 +16,4 @@ aoc-input <year> <day>
 
 ## Videos
 
-Most of these solutions are live on streamed on [Twitch](https://twitch.tv/stewSquared). VODs will eventually be published on [YouTube](https://youtube.com/@stewSquared). If you found code in this repository helpful, consider following me on either of these platforms.
+Starting 2023 these solutions are live streamed on [YouTube](https://youtube.com/@stewSquared) and [Twitch](https://twitch.tv/stewSquared). VODs will be available long-term on YouTube. Check out [this playlist](https://www.youtube.com/playlist?list=PLnP_dObOt-rWnSqOUQDc5T_r9TMdaNxJl) for all 2023 videos. If you found code in this repository interesting, consider following me on either of these platforms.
