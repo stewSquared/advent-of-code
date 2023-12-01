@@ -1,69 +1,24 @@
-// val input = util.Using(io.Source.fromResource("2023/day-01.txt")): source =>
-//   source.getLines().toList
-// val lines = input.get
-
 val input = io.Source.fromResource("2023/day-01.txt").getLines().toList
 
-val digitWords = List("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+def digitIndices(s: String): Seq[(Int, Int)] =
+  s.zipWithIndex.collect:
+    case (c, i) if c.isDigit => (c.asDigit, i)
 
-def firstDigit(s: String): Int =
-  val digitIndex = s.indexOf(s.find(_.isDigit).get)
-  val word = digitWords.map{ word =>
-      word -> s.indexOf(word)
-    }.filterNot(_._2 == -1)
-    .minByOption(_._2)
+val digitWords = Vector("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+def wordToDigit(word: String): Int = digitWords.indexOf(word)
 
-  if word.exists(tup => tup._2 < digitIndex) then digitWords.indexOf(word.get._1)
-  else s(digitIndex).asDigit
+def wordIndices(s: String): Seq[(Int, Int)] =
+  digitWords.flatMap: word =>
+    val occurences = Iterator.unfold(0): index =>
+      val i = s.indexOf(word, index)
+      Option.when(i != -1):
+        (wordToDigit(word), i) -> (i + 1)
+    occurences.toVector
 
-firstDigit("4qbbmlpmjx5fiveninepkcnqgqgdjsrzkgxjsxnkqnd2")
-firstDigit("eight23n1teight2")
+val calibrationNumbers = input.map: line =>
+  val indices = (wordIndices(line) ++ digitIndices(line))
+  val (first, _) = indices.minBy(_._2)
+  val (last, _) = indices.maxBy(_._2)
+  first * 10 + last
 
-def lastDigit(s: String): Int =
-  val digitIndex = s.lastIndexOf(s.findLast(_.isDigit).get)
-  val word = digitWords.map{ word =>
-      word -> s.lastIndexOf(word)
-    }.filterNot(_._2 == -1)
-    .maxByOption(_._2)
-
-  println(digitIndex)
-  println(word)
-  if word.exists(tup => tup._2 > digitIndex) then digitWords.indexOf(word.get._1)
-  else s(digitIndex).asDigit
-
-firstDigit("two1nine")
-lastDigit("two1nine")
-firstDigit("abcone2threexyz")
-lastDigit("abcone2threexyz")
-firstDigit("4nineeightseven2")
-lastDigit("4nineeightseven2")
-
-input.map {
-  line =>
-    val first = line.find(_.isDigit).get
-    val last = line.reverse.find(_.isDigit).get
-    println(first)
-    println(last)
-    val num = first + last
-} foreach println
-
-
-val calNumbers = input.map {
-  line =>
-    val first = firstDigit(line)
-    val last = lastDigit(line)
-    s"$first$last".toInt
-}
-
-val ans2 = calNumbers.sum
-
-input foreach println
-
-// Notes: tried to add chars instead of concat string
-// struggled to generalize reverse
-// didn't fix everything in copy paste
-
-
-
-
-//
+val ans = calibrationNumbers.sum
