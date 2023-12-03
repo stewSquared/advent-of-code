@@ -12,15 +12,14 @@ val symbols: Map[Point, Char] =
   points.toMap
 
 def numberRanges(row: String): List[(Int, Range)] =
-  def search(num: Int, rest: String, index: Int, start: Option[Int]): List[(Int, Range)] =
-    if rest.isEmpty then start.map(start => List(num -> (start until index))).getOrElse(Nil)
-    else if rest.head.isDigit then
-      search(num * 10 + rest.head.asDigit, rest.tail, index + 1, start.orElse(Some(index)))
-    else
-      val range = start.map(start => num -> (start until index))
-      val continue = search(0, rest.tail, index + 1, None)
-      range.map(_ :: continue).getOrElse(continue)
-  search(0, row, 0, None)
+  val nums = Iterator.unfold(row, 0): (rest, index) =>
+    Option.when(rest.exists(_.isDigit)):
+      val (pre, numStart) = rest.span(!_.isDigit)
+      val (digits, post) = numStart.span(_.isDigit)
+      val numStartIndex = index + pre.length
+      val nextIndex = numStartIndex + digits.length
+      (digits.toInt, numStartIndex until nextIndex) -> (post, nextIndex)
+  nums.toList
 
 val numberAreas = for
     (row, y) <- grid.zipWithIndex
