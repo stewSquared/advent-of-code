@@ -1,34 +1,26 @@
 val input = io.Source.fromResource("2023/day-04.txt").getLines().toList
 
-val cards: Map[Int, (Set[Int], Set[Int])] =
+val matches: Map[Int, Set[Int]] =
   val tups = input.map:
     case s"Card $n: $left | $right" =>
-      val have = left.split(" +").filter(_.nonEmpty).map(_.toInt).toList
-      val winning = right.split(" +").filter(_.nonEmpty).map(_.toInt).toList
-      n.stripLeading.toInt -> (have.toSet, winning.toSet)
+      val have = left.split(" +").filter(_.nonEmpty).map(_.toInt).toSet
+      val winning = right.split(" +").filter(_.nonEmpty).map(_.toInt).toSet
+      n.stripLeading.toInt -> have.intersect(winning)
   tups.toMap
 
-cards foreach println
+def score(n: Int) =
+  math.pow(2, matches(n).size - 1).toInt
 
-val originalCounts = cards.view.mapValues(_ => 1).toMap
+val ans1 = matches.keysIterator.map(score).sum
 
 val counts = scala.collection.mutable.Map.empty[Int, Int]
-cards.keysIterator.foreach(counts(_) = 1)
+matches.keysIterator.foreach(counts(_) = 1)
 
-def cardsWon(n: Int) =
-  val (have, winning) = cards(n)
-  have.intersect(winning).size
-
-def count(card: Int): Unit =
-  val s = cardsWon(card)
-  val newCards = (card + 1) to (card + s)
-  for c <- newCards if cards.contains(c) do counts(c) += counts(card)
-
-def score(n: Int) =
-  val (have, winning) = cards(n)
-  val matches = have.intersect(winning).size
-  math.pow(2, matches - 1).toInt
-
-val ans1 = cards.keysIterator.map(score).sum
+for
+  n <- 1 to matches.size
+  newCards = (n + 1) to (n + matches(n).size)
+  c <- newCards if matches.contains(c)
+do
+  counts(c) += counts(n)
 
 val ans2 = counts.valuesIterator.sum
