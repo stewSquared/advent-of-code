@@ -1,32 +1,63 @@
 package aoc
 
 case class Point(x: Int, y: Int):
-  def u = copy(y = y + 1)
-  def d = copy(y = y - 1)
-  def l = copy(x = x + 1)
-  def r = copy(x = x - 1)
+  def n = copy(y = y - 1)
+  def s = copy(y = y + 1)
+  def e = copy(x = x + 1)
+  def w = copy(x = x - 1)
 
-  def n = copy(y = y + 1)
-  def s = copy(y = y - 1)
-  def e = copy(x = x - 1)
-  def w = copy(x = x + 1)
+  def ne = Point(x + 1, y - 1)
+  def se = Point(x + 1, y + 1)
+  def nw = Point(x - 1, y - 1)
+  def sw = Point(x - 1, y + 1)
+
+  def nRepeat(n: Int) = copy(y = y - n)
+  def sRepeat(n: Int) = copy(y = y + n)
+  def eRepeat(n: Int) = copy(x = x + n)
+  def wRepeat(n: Int) = copy(x = x - n)
+
+  def u = n
+  def d = s
+  def l = w
+  def r = e
+
+  // TODO: consider Move objects that represent movement functions
+
+  def move(dir: Dir, times: Int = 1) = dir match
+    case Dir.N => nRepeat(times)
+    case Dir.S => sRepeat(times)
+    case Dir.E => eRepeat(times)
+    case Dir.W => wRepeat(times)
+
+  def adjacent = Set(n, s, e, w)
+  def surrounding = Set(n, s, e, w, ne, se, nw, sw)
+
+  def adjacentTo(p: Point) = dist(p) == 1
+  def surrounds(p: Point) =
+    p != this && locally:
+      val dx = (p.x - x).abs
+      val dy = (p.y - y).abs
+      dx <= 1 && dy <= 1
 
   def inBounds(a: Area) = a.contains(this)
 
-  def dist(other: Point) =
-  (other.x - x).abs + (other.y - y).abs
+  def dist(p: Point) =
+    (p.x - x).abs + (p.y - y).abs
 
-  def plus(other: Point) = Point(x + other.x, y + other.y)
+  def plus(p: Point) = Point(x + p.x, y + p.y)
+  def minus(p: Point) = Point(x - p.x, y - p.y)
 
-  // TODO: rotate around another point
+  def cw: Point = Point(-y, x)
+  def ccw: Point = Point(y, -x)
 
-  def move(d: Dir) = d match
-    case Dir.E => this.e
-    case Dir.S => this.s
-    case Dir.W => this.w
-    case Dir.N => this.n
+object Point:
+  val origin = Point(0, 0)
 
-  def foo(bar: Int): Int = 13
+  extension [T](grid: IndexedSeq[IndexedSeq[T]])
+    def apply(p: Point): T = grid(p.y)(p.x)
+
+  extension (grid: IndexedSeq[String])
+    def apply(p: Point): Char = grid(p.y)(p.x)
 
 enum Dir:
   case E, S, W, N
@@ -44,14 +75,14 @@ enum Dir:
     case Dir.N => W
 
 case class Line(p: Point, q: Point):
-  val dx = q.x - p.x
-  val dy = q.y - p.y
+  def dx = q.x - p.x
+  def dy = q.y - p.y
 
   def horizontal = dy == 0
   def vertical = dx == 0
 
-  def xRange = (p.x to q.x by dx.sign)
-  def yRange = (p.y to q.y by dy.sign)
+  def xRange = p.x to q.x by (if horizontal then dx.sign else 1)
+  def yRange = p.y to q.y by (if vertical then dy.sign else 1)
 
   def points: Seq[Point] =
     if horizontal then xRange.map(Point(_, p.y))
@@ -88,25 +119,79 @@ case class Interval(min: Int, max: Int):
 
 object Interval:
   def apply(n1: Int, n2: Int): Interval = new Interval(n1 min n2, n1 max n2)
+  def apply(range: Range): Interval = new Interval(range.min, range.max)
 
   def unapply(s: String) = s match
-    case s"$n1..$n2" => n1.toIntOption.zip(n2.toIntOption).map(apply)
+    case s"$n1..$n2" => n1.toIntOption.zip(n2.toIntOption).map(apply(_, _))
 
-case class Area(left: Int, right: Int, top: Int, bot: Int):
-  def expand(n: Int): Area =
-    copy(left - n, right + n, top - n, bot + n)
-  val xRange = left until right
-  val yRange = top until bot
-  val width = right - left
-  val height = top - bot
+case class Area(xRange: Range, yRange: Range):
+  def left = xRange.min
+  def right = xRange.max
+  def top = yRange.min
+  def bot = yRange.max
 
-  // TODO boundaries
+  def width = xRange.size
+  def height = yRange.size
+  def size = width * height
+
+  def topLeft = Point(left, top)
+  def topRight = Point(right, top)
+  def botLeft = Point(left, bot)
+  def botRight = Point(right, bot)
+
+  def topBorder = Line(topLeft, topRight)
+  def botBorder = Line(botLeft, botRight)
+  def leftBorder = Line(topLeft, botLeft)
+  def rightBorder = Line(topRight, botRight)
 
   def contains(p: Point) =
     xRange.contains(p.x) && yRange.contains(p.y)
 
-// TODO: area from grid
+  def expand(n: Int): Area =
+    copy(left - n to right + n, top - n to bot + n)
+
+  def pointsIterator = for
+    y <- yRange.iterator
+    x <- xRange
+  yield Point(x, y)
+
+  def draw(f: Point => Char): String =
+    val sb = collection.mutable.StringBuilder()
+    for y <- yRange do
+      for x <- xRange do sb.addOne(f(Point(x, y)))
+      sb.addOne('\n')
+    sb.result()
+
+object Area:
+  def apply(grid: IndexedSeq[IndexedSeq[_]]): Area =
+    Area(
+      xRange = grid.headOption.fold(0 to 0)(_.indices),
+      yRange = grid.indices
+    )
+
+  def apply(grid: IndexedSeq[String])(using wrap: String => collection.immutable.WrappedString): Area =
+    apply(grid.map(wrap))
+
+  def bounding[T](points: Map[Point, T]): Area =
+    val xs = points.keys.map(_.x)
+    val ys = points.keys.map(_.y)
+    Area(
+      xRange = xs.min to xs.max,
+      yRange = ys.min to ys.max
+    )
+
+  def bounding(points: Set[Point]): Area =
+    val xs = points.map(_.x)
+    val ys = points.map(_.y)
+    Area(
+      xRange = xs.min to xs.max,
+      yRange = ys.min to ys.max
+    )
+
+  def apply(left: Int, right: Int, top: Int, bot: Int): Area =
+    Area(left to right, top to bot)
+
+extension (p: Point) def xy = (p.x, p.y)
+
 // TODO: Set/Map Grid
 // TODO: 2D Grid
-
-//
