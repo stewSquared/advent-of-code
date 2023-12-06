@@ -89,37 +89,48 @@ case class Line(p: Point, q: Point):
     else if vertical then yRange.map(Point(p.x, _))
     else (xRange zip yRange).map(Point(_, _))
 
-case class Interval(min: Int, max: Int):
+case class Interval[N : Integral](min: N, max: N):
+  import math.Integral.Implicits.infixIntegralOps
+  import math.Ordering.Implicits.infixOrderingOps
+  import collection.immutable.NumericRange
+
   override def toString = s"$min..$max"
+  private val one = Integral[N].one
 
-  def size = max + 1 - min
-  def contains(n: Int) = min <= n && n <= max
-  def toRange = scala.Range.inclusive(min, max)
-  def iterator = toRange.iterator
-  def supersetOf(r: Interval) = min <= r.min && r.max <= max
+  def size: N = max + one - min
+  def contains(n: N) = min <= n && n <= max
+  def toRange: Range = Range.inclusive(min.toInt, max.toInt)
+  def toNumericRange = NumericRange.inclusive[N](min, max, one)
+  def iterator = toNumericRange.iterator
+  def supersetOf(r: Interval[N]) = min <= r.min && r.max <= max
 
-  def intersect(r: Interval): Option[Interval] =
+  def intersect(r: Interval[N]): Option[Interval[N]] =
     if supersetOf(r) then Some(r)
     else if r contains min then Some(copy(max = max.min(r.max)))
     else if r contains max then Some(copy(min = min.max(r.min)))
     else None
 
-  def diff(n: Interval): List[Interval] =
+  def diff(n: Interval[N]): List[Interval[N]] =
     if min < n.min && n.max < max then
-      List(copy(max = n.min - 1), copy(min = n.max + 1))
+      List(copy(max = n.min - one), copy(min = n.max + one))
     else if n.min <= min && max <= n.max then Nil
-    else if n contains max then List(copy(max = n.min - 1))
-    else if n contains min then List(copy(min = n.max + 1))
+    else if n contains max then List(copy(max = n.min - one))
+    else if n contains min then List(copy(min = n.max + one))
     else List(this)
 
-  def diff(intervals: Seq[Interval]): List[Interval] =
+  def diff(intervals: Seq[Interval[N]]): List[Interval[N]] =
     intervals.foldLeft(List(this)) { (disjoint, n) =>
       disjoint.flatMap(_.diff(n))
     }
 
 object Interval:
-  def apply(n1: Int, n2: Int): Interval = new Interval(n1 min n2, n1 max n2)
-  def apply(range: Range): Interval = new Interval(range.min, range.max)
+  import math.Integral.Implicits.infixIntegralOps
+  import math.Ordering.Implicits.infixOrderingOps
+  import collection.immutable.NumericRange
+
+  def apply[N : Integral](n1: N, n2: N): Interval[N] = new Interval[N](n1 min n2, n1 max n2)
+  def apply(range: Range): Interval[Int] = new Interval[Int](range.min, range.max)
+  def apply[N : Integral](numericRange: NumericRange[N]): Interval[N] = new Interval[N](numericRange.min, numericRange.max)
 
   def unapply(s: String) = s match
     case s"$n1..$n2" => n1.toIntOption.zip(n2.toIntOption).map(apply(_, _))

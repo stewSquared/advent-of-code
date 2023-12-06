@@ -6,6 +6,13 @@ aoc.xy(Point(3,4))
 
 val area = aoc.Area(0 to 2, 0 to 2)
 
+import collection.immutable.NumericRange
+
+NumericRange(0L, 4L, 1L)
+
+def foo[N : Integral](n: N) =
+  NumericRange(n, n, n)
+
 area.expand == aoc.Area(-1 to 3, -1 to 3)
 area.size
 area.expand(1).size
@@ -102,7 +109,16 @@ def assertThrows[T](body: => Unit)(using m: scala.reflect.ClassTag[T]) =
     case e: Throwable =>
       assert(m.runtimeClass.isInstance(e))
 
+// Interval tests
 
+val range = Interval(1, 10)
+range.intersect(Interval(8, 12))
+range.intersect(Interval(-2, 2))
+range.intersect(Interval(2, 8))
+range.intersect(Interval(-2, 12))
 
-
-// Area.foo
+Interval(1L, 10L).diff(Interval(8L, 12L))
+Interval(1L, 10L).diff(Interval(3L, 5L))
+Interval(1L, 10L).diff(Interval(-5L, 5L))
+Interval(1L, 10L).diff(Interval(-5L, 15L))
+Interval(1L, 10L).diff(Interval(15L, 25L))
