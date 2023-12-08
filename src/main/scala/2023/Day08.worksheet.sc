@@ -13,11 +13,7 @@ def move(pos: String, dir: Char): String =
 
 def infDir: LazyList[Char] = LazyList(directions:_*) #::: infDir
 
-def positions = Iterator.unfold("AAA", infDir):
-  case (pos, dir #:: dirs) =>
-    // println(s"at $pos going $dir")
-    val nextPos = move(pos, dir)
-    Some((pos, (nextPos, dirs)))
+def positions = infDir.scanLeft("AAA")(move)
 
 val ans1 = positions.indexWhere(_ == "ZZZ")
 
