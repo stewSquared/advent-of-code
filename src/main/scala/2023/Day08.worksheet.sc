@@ -5,8 +5,6 @@ val directions = input.head
 val adj = input.drop(2).foldLeft(Map.empty[String, (String, String)]):
   case (m, s"$start = ($left, $right)") => m.updated(start, (left, right))
 
-adj foreach println
-
 def move(pos: String, dir: Char): String =
   val (left, right) = adj(pos)
   dir match
@@ -17,8 +15,19 @@ def infDir: LazyList[Char] = LazyList(directions:_*) #::: infDir
 
 def positions = Iterator.unfold("AAA", infDir):
   case (pos, dir #:: dirs) =>
-    println(s"at $pos going $dir")
+    // println(s"at $pos going $dir")
     val nextPos = move(pos, dir)
     Some((pos, (nextPos, dirs)))
 
 val ans1 = positions.indexWhere(_ == "ZZZ")
+
+val starts = adj.keys.filter(_.endsWith("A")).toList
+
+val destinations = adj.keysIterator
+  .map(start => start -> directions.foldLeft(start)(move))
+  .toMap
+
+val periods = starts.map: start =>
+  Iterator.iterate(start)(destinations).indexWhere(_.endsWith("Z"))
+
+val ans2 = periods.map(_.toLong).product * directions.length
