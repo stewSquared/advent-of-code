@@ -87,8 +87,8 @@ case class Line(p: Point, q: Point):
   def horizontal = dy == 0
   def vertical = dx == 0
 
-  def xRange = p.x to q.x by (if horizontal then dx.sign else 1)
-  def yRange = p.y to q.y by (if vertical then dy.sign else 1)
+  def xRange = p.x to q.x by (if vertical then 1 else dx.sign)
+  def yRange = p.y to q.y by (if horizontal then 1 else dy.sign)
 
   def points: Seq[Point] =
     if horizontal then xRange.map(Point(_, p.y))
@@ -190,6 +190,14 @@ object Area:
 
   def apply(grid: IndexedSeq[String])(using wrap: String => collection.immutable.WrappedString): Area =
     apply(grid.map(wrap))
+
+  def bounding(p: Point, q: Point) =
+    val dx = q.x - p.x
+    val dy = q.y - p.y
+    Area(
+      xRange = p.x to q.x by (if dx == 0 then 1 else dx.sign),
+      yRange = p.y to q.y by (if dy == 0 then 1 else dy.sign)
+    )
 
   def bounding[T](points: Map[Point, T]): Area =
     val xs = points.keys.map(_.x)
