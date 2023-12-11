@@ -74,6 +74,12 @@ enum Dir:
     case Dir.W => S
     case Dir.N => W
 
+  def reverse = this match
+    case Dir.E => W
+    case Dir.S => N
+    case Dir.W => E
+    case Dir.N => S
+
 case class Line(p: Point, q: Point):
   def dx = q.x - p.x
   def dy = q.y - p.y
@@ -157,6 +163,8 @@ case class Area(xRange: Range, yRange: Range):
 
   def contains(p: Point) =
     xRange.contains(p.x) && yRange.contains(p.y)
+
+  def adjacent(p: Point) = p.adjacent.filter(contains)
 
   def expand(n: Int): Area =
     copy(left - n to right + n, top - n to bot + n)
