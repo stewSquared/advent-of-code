@@ -1,24 +1,23 @@
 import aoc.*
 
-val grid = io.Source.fromResource("2023/day-03.txt").getLines().toList
+val grid = io.Source.fromResource("2023/day-03.txt").getLines().toVector
 
-val symbols: Map[Point, Char] =
-  val points = for
-    (row, y) <- grid.zipWithIndex
-    (char, x) <- row.zipWithIndex
-    if !char.isDigit && char != '.'
-  yield
-    Point(x, y) -> char
-  points.toMap
+val area = Area(grid)
+
+val symbols = Map.from[Point, Char]:
+  area.pointsIterator.map(p => p -> grid(p)).filterNot:
+    case (p, c) => c.isDigit || c == '.'
 
 def numberRanges(row: String): List[(Int, Range)] =
   val nums = Iterator.unfold(row, 0): (rest, index) =>
-    Option.when(rest.exists(_.isDigit)):
+    Option.when(rest.nonEmpty && rest.exists(_.isDigit)):
       val (pre, numStart) = rest.span(!_.isDigit)
       val (digits, post) = numStart.span(_.isDigit)
-      val numStartIndex = index + pre.length
-      val nextIndex = numStartIndex + digits.length
-      (digits.toInt, numStartIndex until nextIndex) -> (post, nextIndex)
+      val num = digits.toInt
+      val numMinIndex = index + pre.length
+      val numMaxIndex = numMinIndex + digits.length
+      val range = numMinIndex until numMaxIndex
+      (num, range) -> (post, numMaxIndex)
   nums.toList
 
 val numberAreas = for
