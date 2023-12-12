@@ -1,6 +1,6 @@
 import aoc.*
 
-val input = io.Source.fromResource("2023/day-12.txt").getLines().toVector
+val input = io.Source.fromResource("2023/day-12-ex.txt").getLines().toVector
 
 input.size
 
@@ -47,6 +47,19 @@ def parse(line: String): (String, List[Int]) = line match
 // countSolutions.tupled(parse(input(4))) - 4
 // countSolutions.tupled(parse(input(5))) - 10
 
+def parse2(line: String): (String, List[Int]) =
+  val (conditions, contiguousDamaged) = parse(line)
+  List.fill(5)(conditions).mkString("?") -> List.fill(5)(contiguousDamaged).flatten
+
 val ans1 = input.map(parse).map(countSolutions.tupled).sum
+
+countSolutions.tupled(parse2(input(0))) - 1
+countSolutions.tupled(parse2(input(1))) - 16384
+countSolutions.tupled(parse2(input(2))) - 1
+countSolutions.tupled(parse2(input(3))) - 16
+countSolutions.tupled(parse2(input(4))) - 2500
+// countSolutions.tupled(parse2(input(5))) - 1506250
+
+// val ans2 = input.map(parse2).map(countSolutions.tupled).sum
 
 //
