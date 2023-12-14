@@ -21,6 +21,8 @@ case class Point(x: Int, y: Int):
   def l = w
   def r = e
 
+  def swap = Point(y, x)
+
   // TODO: consider Move objects that represent movement functions
 
   def move(dir: Dir, times: Int = 1) = dir match
@@ -161,6 +163,8 @@ case class Area(xRange: Range, yRange: Range):
   def leftBorder = Line(topLeft, botLeft)
   def rightBorder = Line(topRight, botRight)
 
+  def apply(p: Point): Boolean = contains(p)
+
   def contains(p: Point) =
     xRange.contains(p.x) && yRange.contains(p.y)
 
@@ -168,6 +172,8 @@ case class Area(xRange: Range, yRange: Range):
 
   def expand(n: Int): Area =
     copy(left - n to right + n, top - n to bot + n)
+
+  def transpose = Area(yRange, xRange)
 
   def pointsIterator = for
     y <- yRange.iterator

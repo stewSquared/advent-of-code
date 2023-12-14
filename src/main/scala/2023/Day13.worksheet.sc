@@ -13,28 +13,16 @@ val rockMaps: List[(Set[Point], Area)] =
 
 def findMirror(points: Set[Point], area: Area, smudge: Int): Option[Int] =
   val flipped = points.map(p => Point(area.right - p.x, p.y))
-  val shifts = 1 - area.right until area.right by 2
-  val mirrorShift = shifts.find: shift =>
+  (1 to area.right).find: cols =>
+    val shift = 2 * cols - area.width
     val shifted = flipped.map(p => p.copy(x = p.x + shift))
-    val intersectArea = area.intersect(Area.bounding(shifted)).get
-    val intersect = shifted.intersect(points)
-    val leftDiff = points.filter(intersectArea.contains).diff(intersect).size == smudge
-    val rightDiff = shifted.filter(intersectArea.contains).diff(intersect).size == smudge
-    leftDiff && rightDiff
+    val overlap = area.intersect(Area.bounding(shifted)).get
+    points.filter(overlap(_)).diff(shifted).sizeIs == smudge
 
-  mirrorShift.map(shift => (area.xRange.size + shift) / 2)
-
-def mirrors(points: Set[Point], area: Area, smudge: Int) =
+def score(points: Set[Point], area: Area, smudge: Int) =
   val vert = findMirror(points, area, smudge)
-  val transposePoints = points.map(p => p.copy(x = p.y, y = p.x))
-  val transposeArea = Area(area.yRange, area.xRange)
-  val horiz = findMirror(transposePoints, transposeArea, smudge)
-  (horiz, vert)
+  val horiz = findMirror(points.map(_.swap), area.transpose, smudge)
+  horiz.fold(0)(_ * 100) + vert.getOrElse(0)
 
-val ans1 =
-  val (horiz, vert) = rockMaps.map(mirrors(_, _, 0)).unzip
-  horiz.flatten.sum * 100 + vert.flatten.sum
-
-val ans2 =
-  val (horiz, vert) = rockMaps.map(mirrors(_, _, 1)).unzip
-  horiz.flatten.sum * 100 + vert.flatten.sum
+val ans1 = rockMaps.map(score(_, _, 0)).sum
+val ans2 = rockMaps.map(score(_, _, 1)).sum
