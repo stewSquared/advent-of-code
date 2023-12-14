@@ -131,6 +131,10 @@ case class Interval[N : Integral](min: N, max: N):
       disjoint.flatMap(_.diff(n))
     }
 
+  def union(r: Interval[N]): List[Interval[N]] =
+    if intersect(r).isEmpty then List(this, r)
+    else List(Interval(min min r.min, max max r.max))
+
 object Interval:
   import math.Integral.Implicits.infixIntegralOps
   import math.Ordering.Implicits.infixOrderingOps
@@ -186,6 +190,27 @@ case class Area(xRange: Range, yRange: Range):
       for x <- xRange do sb.addOne(f(Point(x, y)))
       sb.addOne('\n')
     sb.result()
+
+  def intersect(a: Area): Option[Area] =
+    for
+      xInterval <- Interval(xRange).intersect(Interval(a.xRange))
+      yInterval <- Interval(yRange).intersect(Interval(a.yRange))
+    yield
+      Area(xInterval.toRange, yInterval.toRange)
+
+  def diff(a: Area): List[Area] =
+    intersect(a).fold(List(this)): a =>
+      for
+        xInterval <- Interval(a.xRange) :: Interval(xRange).diff(Interval(a.xRange))
+        yInterval <- Interval(a.yRange) :: Interval(yRange).diff(Interval(a.yRange))
+        intervalArea = Area(xInterval.toRange, yInterval.toRange)
+        if a != intervalArea
+      yield intervalArea
+
+  def union(a: Area): List[Area] =
+    val thisDiffed = this.diff(a)
+    val aDiffed = a.diff(this)
+    this.intersect(a).toList ++ thisDiffed ++ aDiffed
 
 object Area:
   def apply(grid: IndexedSeq[IndexedSeq[_]]): Area =

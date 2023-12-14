@@ -109,6 +109,60 @@ def assertThrows[T](body: => Unit)(using m: scala.reflect.ClassTag[T]) =
     case e: Throwable =>
       assert(m.runtimeClass.isInstance(e))
 
+// Area intersection
+
+val area1 = Area(0 to 2, 0 to 2)
+val area2 = Area(1 to 3, 2 to 4)
+val area3 = Area(3 to 4, 3 to 4)
+area1.intersect(area2).get
+area1.intersect(area2).get.size
+area1.intersect(area3).isEmpty
+
+// Area diff
+
+val largeArea = Area(0 to 10, 0 to 10)
+val midArea = Area(3 to 7, 3 to 7)
+val topLeftArea = Area(0 to 7, 0 to 7)
+val botRightArea = Area(3 to 10, 3 to 10)
+
+midArea.diff(largeArea).isEmpty
+largeArea.size - midArea.size
+largeArea.diff(midArea).map(_.size).sum
+largeArea.diff(midArea) foreach println
+largeArea.diff(botRightArea).size == 3
+largeArea.size - botRightArea.size
+largeArea.diff(botRightArea).map(_.size).sum
+
+botRightArea.diff(topLeftArea).size == 3
+botRightArea.diff(topLeftArea).map(_.size).sum
+botRightArea.diff(topLeftArea.intersect(botRightArea).get).map(_.size).sum
+botRightArea.size - botRightArea.intersect(topLeftArea).get.size
+botRightArea.intersect(topLeftArea).get.size
+botRightArea.size
+64 - 25
+botRightArea.diff(topLeftArea) foreach println
+
+// Area union
+
+topLeftArea.size + botRightArea.size - topLeftArea.intersect(botRightArea).get.size
+topLeftArea.union(botRightArea).map(_.size).sum
+topLeftArea.union(botRightArea) foreach println
+val expectedAreas = List(
+  Area(0 to 2, 0 to 2),
+  Area(0 to 2, 3 to 7),
+  // Area(0 to 2, 8 to 10),
+  Area(3 to 7, 0 to 2),
+  Area(3 to 7, 3 to 7),
+  Area(3 to 7, 8 to 10),
+  // Area(8 to 10, 0 to 2),
+  Area(8 to 10, 3 to 7),
+  Area(8 to 10, 8 to 10)
+)
+expectedAreas.toSet == topLeftArea.union(botRightArea).toSet
+// TODO fix this!^
+
+topLeftArea.diff(botRightArea) foreach println
+botRightArea.diff(topLeftArea) foreach println
 // Interval tests
 
 val range = Interval(1, 10)
