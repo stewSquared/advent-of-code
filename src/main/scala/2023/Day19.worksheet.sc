@@ -1,28 +1,23 @@
 import aoc.*
 
-val input = io.Source.fromResource("2023/day-19.txt").getLines
+val input = io.Source.fromResource("2023/day-19-ex.txt").getLines
 
 enum Category:
   case X, M, A, S
 
 sealed trait Rule
-
-sealed trait Action extends Rule:
-  def terminal: Boolean = this match
-    case Send(_) => false
-    case _ => true
-
-case object Accept extends Action
-case object Reject extends Action
-case class Send(name: String) extends Action
+enum Action extends Rule:
+  case Accept, Reject
+  case Send(to: String)
+import Action.*
 
 sealed trait Condition:
   def category: Category
 
   def applicable(part: Part): Boolean =
     this match
-      case LT(category, value) => part.category(category) < value
-      case GT(category, value) => part.category(category) > value
+      case LT(category, value) => part(category) < value
+      case GT(category, value) => part(category) > value
 
   def matching(category: Category): Interval[Int] =
     this match
@@ -35,7 +30,6 @@ sealed trait Condition:
       case LT(c, v) if c == category => Interval(v to 4000)
       case GT(c, v) if c == category => Interval(1 to v)
       case _ => Interval(1 to 4000)
-
 
 case class LT(category: Category, value: Int) extends Condition
 case class GT(category: Category, value: Int) extends Condition
@@ -53,18 +47,22 @@ case object Action:
     case "R" => Reject
     case s => Send(s)
 
-case class Part(x: Int, m: Int, a: Int, s: Int):
-  def category(category: Category) = category match
-    case Category.X => x
-    case Category.M => m
-    case Category.A => a
-    case Category.S => s
-
-  def ratingNumber: Int = x + m + a + s
+type Part = Map[Category, Int]
 
 object Part:
   def fromString(s: String) = s match
-    case s"{x=$x,m=$m,a=$a,s=$s}" => Part(x.toInt, m.toInt, a.toInt, s.toInt)
+    case s"{x=$x,m=$m,a=$a,s=$s}" => apply(x.toInt, m.toInt, a.toInt, s.toInt)
+
+  def apply(x: Int, m: Int, a: Int, s: Int): Part =
+    Map(
+      Category.X -> x,
+      Category.M -> m,
+      Category.A -> a,
+      Category.S -> s
+    )
+
+extension (part: Part)
+  def ratingNumber: Int = Category.values.map(part).sum
 
 val workflows = Map.from[String, List[Rule]]:
   val lines = input.takeWhile(_.nonEmpty)
@@ -96,85 +94,47 @@ def accepted(part: Part) = process(part).contains(Accept)
 
 val ans1 = parts.filter(accepted).map(_.ratingNumber).sum
 
-case class Ranges(
-  x: List[Interval[Int]],
-  m: List[Interval[Int]],
-  a: List[Interval[Int]],
-  s: List[Interval[Int]]
-):
-  override def toString =
-    s"x: ${x.mkString(",")} m: ${m.mkString(",")} a: ${a.mkString(",")} s: ${s.mkString(",")}"
+type Ranges = Map[Category, List[Interval[Int]]]
 
-  def normalize: Ranges = copy(
-    x = x.sortBy(_.min).distinct,
-    m = m.sortBy(_.min).distinct,
-    a = a.sortBy(_.min).distinct,
-    s = s.sortBy(_.min).distinct
-  )
+extension (ranges: Ranges)
+  def show =
+    ranges.map: (category, intervals) =>
+      s"$category: ${intervals.mkString(",")}"
+    .mkString(" ")
+
+  def normalize: Ranges =
+    ranges.view.mapValues(_.sortBy(_.min).distinct).toMap
 
   def combinations =
-    val xn = x.distinct.map(_.size).sum.toLong
-    val mn = m.distinct.map(_.size).sum.toLong
-    val an = a.distinct.map(_.size).sum.toLong
-    val sn = s.distinct.map(_.size).sum.toLong
-    xn * mn * an * sn
+    ranges.values.map(_.map(_.size).sum.toLong).product
 
   def filterBy(rule: Rule): Ranges = rule match
-    case Conditional(condition, _) =>
-      condition.category match
-        case Category.X =>
-          val range = condition.matching(Category.X)
-          copy(x = x.flatMap(_.intersect(range)))
-        case Category.M =>
-          val range = condition.matching(Category.M)
-          copy(m = m.flatMap(_.intersect(range)))
-        case Category.A =>
-          val range = condition.matching(Category.A)
-          copy(a = a.flatMap(_.intersect(range)))
-        case Category.S =>
-          val range = condition.matching(Category.S)
-          copy(s = s.flatMap(_.intersect(range)))
-    case action: Action => this
+    case Conditional(condition, _) => ranges.map:
+      case (cat, cRanges) if cat == condition.category =>
+        val filter = condition.matching(condition.category)
+        cat -> cRanges.flatMap(_.intersect(filter))
+      case others => others
+    case action: Action => ranges
 
   def filterNotBy(rule: Rule): Ranges = rule match
-    case Conditional(condition, _) =>
-      condition.category match
-        case Category.X =>
-          val range = condition.nonMatching(Category.X)
-          copy(x = x.flatMap(_.intersect(range)))
-        case Category.M =>
-          val range = condition.nonMatching(Category.M)
-          copy(m = m.flatMap(_.intersect(range)))
-        case Category.A =>
-          val range = condition.nonMatching(Category.A)
-          copy(a = a.flatMap(_.intersect(range)))
-        case Category.S =>
-          val range = condition.nonMatching(Category.S)
-          copy(s = s.flatMap(_.intersect(range)))
-    case action: Action => this
+    case Conditional(condition, _) => ranges.map:
+      case (cat, cRanges) if cat == condition.category =>
+        val filter = condition.nonMatching(cat)
+        cat -> cRanges.flatMap(_.intersect(filter))
+      case others => others
+    case action: Action => ranges
 
   def intersect(other: Ranges): Ranges =
-    copy(
-      x = x.flatMap: interval =>
-        other.x.flatMap(interval.intersect)
-      .distinct,
-      m = m.flatMap: interval =>
-        other.m.flatMap(interval.intersect)
-      .distinct,
-      a = a.flatMap: interval =>
-        other.a.flatMap(interval.intersect)
-      .distinct,
-      s = s.flatMap: interval =>
-        other.s.flatMap(interval.intersect)
-      .distinct
-    )
+    ranges.map:
+      case (cat, intervals) =>
+        cat -> intervals.flatMap(n => other(cat).flatMap(n.intersect))
 
 object Ranges:
-  val full = Ranges(
-    x = List(Interval(1 to 4000)),
-    m = List(Interval(1 to 4000)),
-    a = List(Interval(1 to 4000)),
-    s = List(Interval(1 to 4000))
+  val full = Map(
+    Category.X -> List(Interval(1 to 4000)),
+    Category.M -> List(Interval(1 to 4000)),
+    Category.A -> List(Interval(1 to 4000)),
+    Category.S -> List(Interval(1 to 4000))
   )
 
 def actionRanges(from: String): List[(Action, Ranges)] =
@@ -189,14 +149,10 @@ def actionRanges(from: String): List[(Action, Ranges)] =
         case Conditional(_, a) => a -> passedThrough
 
 def search(from: String, incoming: Ranges): Long =
-  println(s"from $from with $incoming")
   actionRanges(from).map:
     case (action, ranges) => action -> ranges.intersect(incoming)
-  .tapEach(ar => println(s"  $ar"))
   .map:
-    case (Accept, ranges) =>
-      println(s"accepting ${ranges.combinations}")
-      ranges.combinations
+    case (Accept, ranges) => ranges.combinations
     case (Reject, ranges) => 0L
     case (Send(to), ranges) => search(to, ranges)
   .sum
