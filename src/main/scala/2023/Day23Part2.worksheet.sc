@@ -1,5 +1,7 @@
 import aoc.*
 
+import scala.collection.immutable.BitSet
+
 val maze = io.Source.fromResource("2023/day-23.txt").getLines.toVector
 
 val area = Area(maze)
@@ -35,22 +37,25 @@ def adjacentNodes(states: List[State], completed: List[State]): List[(Point, Int
 
 val ss = State(start, Set.empty)
 
-val adj = Map.from[Point, List[(Point, Int)]]:
-  nodes.map: n =>
-    n -> adjacentNodes(State(n, Set.empty).next, Nil)
+val indexOf = nodes.toList.sortBy(_.dist(start)).zipWithIndex.toMap
 
+val adj = Map.from[Int, List[(Int, Int)]]:
+  nodes.map: n =>
+    val nodes = adjacentNodes(State(n, Set.empty).next, Nil).map:
+      case (p, d) => indexOf(p) -> d
+    indexOf(n) -> nodes
+
+// graphvis
 adj.toList.flatMap:
   case (p, pds) => pds.map:
-    case (p2, d) =>
-      val s = List(p,p2).sortBy(p => p.x -> p.y)
-      (s(0), d, s(1))
+    case (p2, d) => (p.min(p2), d, p.max(p2))
 .distinct
 .foreach:
-  case (p, d, q) => println(s""" "${p.x},${p.y}" -- "${q.x},${q.y}" [label=$d];""")
+  case (p, d, q) => println(s""" "$p" -- "$q" [label=$d];""")
 
-
-
-adj(start)
+adj(indexOf(start))
+adj(1)
+adj(2)
 
 nodes.size
 
@@ -63,15 +68,15 @@ case class State(pos: Point, visited: Set[Point]):
     pos.adjacent.toList.filter(path).filterNot(visited).map: p =>
       State(p, visited + pos)
 
-case class SearchState(node: Point, dist: Int):
-  def next(visited: Set[Point]): List[SearchState] =
+case class SearchState(node: Int, dist: Int):
+  def next(visited: BitSet): List[SearchState] =
     adj(node).collect:
       case (n, d) if !visited(n) =>
         SearchState(n, dist + d)
 
-def allPaths(state: SearchState, path: List[SearchState]): List[SearchState] =
-  val (completed, toSearch) = state.next(path.map(_.node).toSet).partition(s => s.node == end)
+def allPaths(state: SearchState, path: BitSet): List[SearchState] =
+  val (completed, toSearch) = state.next(path).partition(s => s.node == indexOf(end))
 
-  toSearch.flatMap(s => allPaths(s, state :: path)) ++ completed
+  toSearch.flatMap(s => allPaths(s, path + state.node)) ++ completed
 
-val ans2 = allPaths(SearchState(start, 0), Nil).map(_.dist).max
+val ans2 = allPaths(SearchState(indexOf(start), 0), BitSet.empty).map(_.dist).max
