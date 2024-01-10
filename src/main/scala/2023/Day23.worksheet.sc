@@ -19,49 +19,53 @@ val walkable = Set.from[Point]:
 val start = walkable.minBy(_.y)
 val end = walkable.maxBy(_.y)
 
-val nodes: Set[Point] = walkable.filter: p =>
+val junctions: Set[Point] = walkable.filter: p =>
   p.adjacent.count(walkable) > 2
 .toSet + start + end
 
-def nodesFrom(pos: Point) = List.from[(Point, Int)]:
-  def next(pos: Point, dir: Dir): List[(Point, Dir)] =
-    for
-      d <- List(dir, dir.turnRight, dir.turnLeft)
-      p = pos.move(d)
-      if walkable(p) && slopes.get(p).forall(_ == d)
-    yield p -> d
+def connectedJunctions(pos: Point) = List.from[(Point, Int)]:
+  def walk(pos: Point, dir: Dir): Option[Point] =
+    val p = pos.move(dir)
+    Option.when(walkable(p) && slopes.get(p).forall(_ == dir))(p)
 
-  def search(p: Point, d: Dir, dist: Int): Option[(Point, Int)] =
-    next(p, d) match
-      case (p, d) :: Nil if nodes(p) => Some(p, dist + 1)
-      case (p, d) :: Nil => search(p, d, dist + 1)
-      case _ => None
+  def search(pos: Point, facing: Dir, dist: Int): Option[(Point, Int)] =
+    if junctions.contains(pos) then Some(pos, dist) else
+      val next = for
+        nextFacing <- LazyList(facing, facing.turnRight, facing.turnLeft)
+        nextPos <- walk(pos, nextFacing)
+      yield search(nextPos, nextFacing, dist + 1)
 
-  Dir.values.flatMap(next(pos, _)).distinct.flatMap(search(_, _, 1))
+      next.headOption.flatten
+
+  for
+    d <- Dir.values
+    p <- walk(pos, d)
+    junction <- search(p, d, 1)
+  yield junction
 
 def longestDownhillHike(pos: Point, dist: Int): Int =
   if pos == end then dist else
-    nodesFrom(pos).foldLeft(0):
+    connectedJunctions(pos).foldLeft(0):
       case (max, (n, d)) => max.max(longestDownhillHike(n, dist + d))
 
 val ans1 = longestDownhillHike(start, 0)
 
-type Node = Int
-val indexOf: Map[Point, Node] =
-  nodes.toList.sortBy(_.dist(start)).zipWithIndex.toMap
+type Index = Int
+val indexOf: Map[Point, Index] =
+  junctions.toList.sortBy(_.dist(start)).zipWithIndex.toMap
 
-val fullAdj: Map[Node, List[(Node, Int)]] =
-  nodes.toList.flatMap: p1 =>
-    nodesFrom(p1).flatMap: (p2, d) =>
+val fullAdj: Map[Index, List[(Index, Int)]] =
+  junctions.toList.flatMap: p1 =>
+    connectedJunctions(p1).flatMap: (p2, d) =>
       val forward = indexOf(p1) -> (indexOf(p2), d)
       val reverse = indexOf(p2) -> (indexOf(p1), d)
       List(forward, reverse)
   .groupMap(_._1)(_._2)
 
-def longestHike(node: Node, visited: BitSet, dist: Int): Int =
-  if node == indexOf(end) then dist else
-    fullAdj(node).collect:
-      case (n, d) if !visited(n) => longestHike(n, visited + n, dist + d)
-    .maxOption.getOrElse(0)
+def longestHike(junction: Index, visited: BitSet, totalDist: Int): Int =
+  if junction == indexOf(end) then totalDist else
+    fullAdj(junction).foldLeft(0):
+      case (max, (j, _)) if visited(j) => max
+      case (max, (j, d)) => max.max(longestHike(j, visited + j, totalDist + d))
 
 val ans2 = longestHike(indexOf(start), BitSet.empty, 0)
