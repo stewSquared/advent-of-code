@@ -8,5 +8,16 @@ lazy val root = project
 
     scalaVersion := scala3Version,
 
-    libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
+    libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test",
+
+    scalacOptions ++= List(
+      "-Wunused:params",
+      "-Wunused:privates",
+      "-Wunused:locals",
+      "-Wvalue-discard",
+      "-Wconf:msg=binding&msg=StringContext:s",
+      "-explain",
+      "-deprecation",
+      // "-Wnonunit-statement",
+    )
   )
