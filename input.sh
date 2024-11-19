@@ -5,5 +5,5 @@ aoc-input () {
     local -r dest="src/main/resources/$year/day-`printf %02d $day`.txt"
     echo "reading from $source"
     echo "writing to $dest"
-    curl --cookie session=$AOC_SESSION $source > $dest
+    curl --cookie session=$AOC_SESSION $source >| $dest
 }
