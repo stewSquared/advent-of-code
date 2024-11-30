@@ -101,6 +101,8 @@ case class Line(p: Point, q: Point):
     else if vertical then yRange.map(Point(p.x, _))
     else (xRange zip yRange).map(Point(_, _))
 
+// TODO: superclass of Interval that is essential union-find
+// https://en.wikipedia.org/wiki/Disjoint-set_data_structure
 case class Interval[N : Integral](min: N, max: N):
   override def toString = s"$min..$max"
   private val one = Integral[N].one
@@ -110,6 +112,7 @@ case class Interval[N : Integral](min: N, max: N):
   def toRange: Range = Range.inclusive(min.toInt, max.toInt)
   def toNumericRange = NumericRange.inclusive[N](min, max, one)
   def iterator = toNumericRange.iterator
+
   def supersetOf(r: Interval[N]) = min <= r.min && r.max <= max
 
   def intersect(r: Interval[N]): Option[Interval[N]] =
@@ -134,6 +137,9 @@ case class Interval[N : Integral](min: N, max: N):
   def union(r: Interval[N]): List[Interval[N]] =
     if intersect(r).isEmpty then List(this, r)
     else List(Interval(min min r.min, max max r.max))
+
+  def union(intervals: Seq[Interval[N]]): List[Interval[N]] =
+    this :: intervals.toList.flatMap(_.diff(this))
 
 
 object Interval:
