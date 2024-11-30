@@ -106,7 +106,7 @@ case class Interval[N : Integral](min: N, max: N):
   private val one = Integral[N].one
 
   def size: N = max + one - min
-  def contains(n: N) = min <= n && n <= max
+  infix def contains(n: N) = min <= n && n <= max
   def toRange: Range = Range.inclusive(min.toInt, max.toInt)
   def toNumericRange = NumericRange.inclusive[N](min, max, one)
   def iterator = toNumericRange.iterator
