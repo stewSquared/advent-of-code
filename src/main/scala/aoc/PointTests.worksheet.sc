@@ -104,10 +104,14 @@ assertThrows[NoSuchElementException](emptyArea.topLeft)
 assertThrows[NoSuchElementException](emptyArea.left)
 assertThrows[NoSuchElementException](emptyArea.expand(1))
 
+import annotation.nowarn
 
-def assertThrows[T](body: => Unit)(using m: scala.reflect.ClassTag[T]) =
+extension (any: Any)
+  @nowarn("msg=discarded") def discard(): Unit = ()
+
+def assertThrows[T](body: => Any)(using m: scala.reflect.ClassTag[T]) =
   try
-    body
+    body.discard()
     assert(false)
   catch
     case e: Throwable =>
