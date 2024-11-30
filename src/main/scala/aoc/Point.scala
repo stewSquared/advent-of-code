@@ -150,6 +150,9 @@ object Interval:
     case s"$n1..$n2" => n1.toIntOption.zip(n2.toIntOption).map(apply(_, _))
 
 case class Area(xRange: Range, yRange: Range):
+  // TODO: work on integral types
+  // overlaps method -- do same for interval
+  // Maybe implement in terms of Interval
   def left = xRange.min
   def right = xRange.max
   def top = yRange.min
