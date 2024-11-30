@@ -228,6 +228,9 @@ object Area:
       yRange = grid.indices
     )
 
+  def apply[N : Integral](xRange: Interval[N], yRange: Interval[N]): Area =
+    Area(xRange.toRange, yRange.toRange)
+
   def apply(grid: IndexedSeq[String])(using wrap: String => collection.immutable.WrappedString): Area =
     apply(grid.map(wrap))
 
