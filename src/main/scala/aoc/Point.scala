@@ -1,5 +1,9 @@
 package aoc
 
+import collection.immutable.NumericRange
+import math.Integral.Implicits.infixIntegralOps
+import math.Ordering.Implicits.infixOrderingOps
+
 case class Point(x: Int, y: Int):
   def n = copy(y = y - 1)
   def s = copy(y = y + 1)
@@ -98,10 +102,6 @@ case class Line(p: Point, q: Point):
     else (xRange zip yRange).map(Point(_, _))
 
 case class Interval[N : Integral](min: N, max: N):
-  import math.Integral.Implicits.infixIntegralOps
-  import math.Ordering.Implicits.infixOrderingOps
-  import collection.immutable.NumericRange
-
   override def toString = s"$min..$max"
   private val one = Integral[N].one
 
@@ -135,11 +135,8 @@ case class Interval[N : Integral](min: N, max: N):
     if intersect(r).isEmpty then List(this, r)
     else List(Interval(min min r.min, max max r.max))
 
-object Interval:
-  import math.Integral.Implicits.infixIntegralOps
-  import math.Ordering.Implicits.infixOrderingOps
-  import collection.immutable.NumericRange
 
+object Interval:
   def apply[N : Integral](n1: N, n2: N): Interval[N] = new Interval[N](n1 min n2, n1 max n2)
   def apply(range: Range): Interval[Int] = new Interval[Int](range.min, range.max)
   def apply[N : Integral](numericRange: NumericRange[N]): Interval[N] = new Interval[N](numericRange.min, numericRange.max)
