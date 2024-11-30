@@ -110,7 +110,7 @@ case class DoubleSearchState(
   def increaseFlow(f: Int) = copy(flow = flow + f)
   def ignore(room: String) = copy(opened = opened + room)
   def availableRooms(from: String): Option[Seq[(String, Int)]] =
-    val rooms = canVisit(from).filterKeys { r =>
+    val rooms = canVisit(from).view.filterKeys { r =>
       !(opened(r) || r == state.visiting || r == state2.visiting)
     }.toSeq
     Option.when(rooms.nonEmpty)(rooms)
@@ -212,6 +212,8 @@ case class DoubleSearchState(
               .stand
               .stand2
             List(bothStand)
+
+        case (_, _) => ???
 
 val startState = DoubleSearchState(
   PlayerState("AA", 0),

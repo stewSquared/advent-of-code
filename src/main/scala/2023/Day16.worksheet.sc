@@ -39,6 +39,7 @@ def path(from: Point, dir: Dir): Set[Point] =
           energizedSet union path(p, dir) + p
         case ('|', Dir.E | Dir.W) =>
           energizedSet union path(p, dir.turnRight) union path(p, dir.turnLeft) + p
+        case _ => ???
 
 val last = path(Point.origin.w, Dir.E)
 val ans1 = last.count(area.contains)

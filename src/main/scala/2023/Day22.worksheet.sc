@@ -24,6 +24,7 @@ val settled = falling.sortBy(_.depth.min).foldLeft(List.empty[Brick]):
 val paired: List[(Brick, Brick)] =
   settled.combinations(2).toList.filter:
     case List(a, b) => a.area.intersect(b.area).nonEmpty
+    case _ => ???
   .collect:
     case List(a, b) if a.depth.min - 1 == b.depth.max => a -> b
     case List(b, a) if a.depth.min - 1 == b.depth.max => a -> b

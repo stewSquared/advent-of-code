@@ -1,6 +1,6 @@
 import aoc.*
 
-val input = io.Source.fromResource("2023/day-19-ex.txt").getLines
+val input = io.Source.fromResource("2023/day-19.txt").getLines
 
 enum Category:
   case X, M, A, S
@@ -142,7 +142,7 @@ def actionRanges(from: String): List[(Action, Ranges)] =
   rules.inits.drop(1).zip(rules.reverse).toList.map:
     case (mustFail, mustPass) =>
       val passedThrough = mustFail
-        .foldLeft(Ranges.full)(_ filterNotBy _)
+        .foldLeft(Ranges.full)(_.filterNotBy(_))
         .filterBy(mustPass)
       mustPass match
         case a: Action => a -> passedThrough

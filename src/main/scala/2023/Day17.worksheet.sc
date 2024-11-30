@@ -1,6 +1,6 @@
 import aoc.*
 
-val grid = io.Source.fromResource("2023/day-17-ex.txt").getLines
+val grid = io.Source.fromResource("2023/day-17.txt").getLines
   .map(s => s.map(_.asDigit).toVector).toVector
 
 val area = Area(grid)

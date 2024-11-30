@@ -5,10 +5,11 @@ type Range = scala.collection.immutable.NumericRange[Long]
 val input = io.Source.fromResource("2023/day-05.txt").getLines()
 
 val seeds: List[Range] =
-  val s"seeds: $seedsStr" = input.next()
+  val s"seeds: $seedsStr" = (input.next(): @unchecked)
   val nums = seedsStr.split(" ").map(_.toLong).toList
   nums.grouped(2).toList.map:
     case List(a, b) => a until (a + b)
+    case _ => ???
 
 seeds foreach println
 

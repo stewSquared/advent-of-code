@@ -9,11 +9,16 @@ val input = io.Source.fromResource("2023/day-05.txt").getLines()
 val rawSeeds = input.next()
 
 val seeds1: List[Range] =
+  // @annotation.nowarn("msg=binding&msg=StringContext")
+  // val s"seeds: $seedsStr" = (rawSeeds: @unchecked)
+  // val s"seeds: $seedsStr" = input.next()
+  @annotation.nowarn("msg=binding&msg=StringContext")
   val s"seeds: $seedsStr" = rawSeeds
   val nums = seedsStr.split(" ").map(_.toLong).toList
   nums.map(n => Range(n, n))
 
 val seeds2: List[Range] =
+  @annotation.nowarn("msg=binding&msg=StringContext")
   val s"seeds: $seedsStr" = rawSeeds
   val nums = seedsStr.split(" ").map(_.toLong).toList
   nums.grouped(2).toList.collect:

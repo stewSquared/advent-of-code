@@ -6,7 +6,7 @@ type Range = scala.collection.immutable.NumericRange[Long]
 val input = io.Source.fromResource("2023/day-05.txt").getLines()
 
 val seeds =
-  val s"seeds: $seedsStr" = input.next()
+  val s"seeds: $seedsStr" = (input.next(): @unchecked)
   seedsStr.split(" ").map(_.toLong).toList
 
 input.next()

@@ -4,6 +4,8 @@ import io.Source
 import util.{Using, Try}
 import util.chaining.*
 
+import scala.language.implicitConversions
+
 enum Amph(val energy: Int, val home: Pos.Entry):
   case A extends Amph(1, Pos.A)
   case B extends Amph(10, Pos.B)

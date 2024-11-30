@@ -7,10 +7,16 @@ val input = io.Source.fromResource("2023/day-24.txt").getLines.toList
 case class Position(x: Double, y: Double, z: Double):
   def +(that: Position): Position = Position(x + that.x, y + that.y, z + that.z)
 
+object Position:
+  def apply(x: Long, y: Long, z: Long): Position = Position(x.toDouble, y.toDouble, z.toDouble)
+
 case class Velocity(x: Double, y: Double, z: Double):
   def +(that: Velocity): Velocity = Velocity(x + that.x, y + that.y, z + that.z)
   // def *(t: Double): Velocity = Velocity(x * t, y * t, z * t)
   def angle = math.atan2(y, x)
+
+object Velocity:
+  def apply(x: Long, y: Long, z: Long): Velocity = Velocity(x.toDouble, y.toDouble, z.toDouble)
 
 case class HailStone(position: Position, velocity: Velocity):
   // def next: HailStone = HailStone(position + velocity, velocity)
@@ -23,7 +29,7 @@ case class HailStone(position: Position, velocity: Velocity):
 
 object HailStone:
   def parse(s: String): HailStone =
-    val s"$x, $y, $z @ $xv, $yv, $zv" = s
+    val s"$x, $y, $z @ $xv, $yv, $zv" = (s: @unchecked)
     HailStone(
       Position(x.toDouble, y.toDouble, z.toDouble),
       Velocity(xv.toDouble, yv.toDouble, zv.toDouble)
@@ -128,6 +134,7 @@ val ans1 = hailStones.combinations(2).count:
       // val minBound = 7
       // val maxBound = 27
       minBound <= i.x && i.x <= maxBound && minBound <= i.y && i.y <= maxBound
+  case _ => ???
 
 
 def times(rockGuess: HailStone) =
@@ -456,9 +463,9 @@ gaussianElimination(example).toVector.map(_.round)
 val Vector(xr, vxr, yr, vyr, zr, zyr) =
   gaussianElimination(matrix).toVector.map(_.round)
 
-xr.round
-yr.round
-zr.round
+xr
+yr
+zr
 
 val rock = HailStone(Position(xr, yr, zr), Velocity(vxr, vyr, zyr))
 
@@ -477,9 +484,9 @@ val possibleRocks = for
   dz <- -10 to 10
 yield HailStone(
   Position(
-    133619443970449L + dx,
-    263917577518425L + dy,
-    180640699244167L + dz),
+    133619443970449L.toDouble + dx,
+    263917577518425L.toDouble + dy,
+    180640699244167L.toDouble + dz),
   Velocity(314, 19, 197))
 
 dev3(times(rock)) foreach println

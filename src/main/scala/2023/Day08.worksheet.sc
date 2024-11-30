@@ -11,7 +11,7 @@ def move(pos: String, dir: Char): String =
     case 'L' => left
     case 'R' => right
 
-def infDir: LazyList[Char] = LazyList(directions:_*) #::: infDir
+def infDir: LazyList[Char] = LazyList(directions*) #::: infDir
 
 def positions = infDir.scanLeft("AAA")(move)
 

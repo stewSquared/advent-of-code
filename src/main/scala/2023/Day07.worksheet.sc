@@ -32,7 +32,7 @@ def parseCard(c: Char) = c match
 
 
 val hands: List[(Hand, Vector[Card], Int)] = input.map: line =>
-  val s"$cardsStr $bid" = line
+  val s"$cardsStr $bid" = (line: @unchecked)
   val cards = cardsStr.map(parseCard).toVector
   (chooseHand(cards), cards, bid.toInt)
 

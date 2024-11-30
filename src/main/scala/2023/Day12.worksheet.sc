@@ -37,5 +37,5 @@ def count(record: String, groups: List[Int]): Long =
 
   search(record, 0, groups)
 
-val ans1 = input.map(parse).map((count _).tupled).sum
-val ans2 = input.map(parse2).map((count _).tupled).sum
+val ans1 = input.map(parse).map(count.tupled).sum
+val ans2 = input.map(parse2).map(count.tupled).sum
