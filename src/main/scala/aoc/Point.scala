@@ -182,6 +182,12 @@ case class Area(xRange: Range, yRange: Range):
 
   def transpose = Area(yRange, xRange)
 
+  def move(dir: Dir, times: Int = 1) = dir match
+    case Dir.E => copy(xRange = xRange.min + times to xRange.max + times)
+    case Dir.S => copy(yRange = yRange.min + times to yRange.max + times)
+    case Dir.W => copy(xRange = xRange.min - times to xRange.max - times)
+    case Dir.N => copy(yRange = yRange.min - times to yRange.max - times)
+
   def pointsIterator = for
     y <- yRange.iterator
     x <- xRange
