@@ -130,9 +130,8 @@ case class Interval[N : Integral](min: N, max: N):
     else List(this)
 
   def diff(intervals: Seq[Interval[N]]): List[Interval[N]] =
-    intervals.foldLeft(List(this)) { (disjoint, n) =>
+    intervals.foldLeft(List(this)): (disjoint, n) =>
       disjoint.flatMap(_.diff(n))
-    }
 
   def union(r: Interval[N]): List[Interval[N]] =
     if intersect(r).isEmpty then List(this, r)
@@ -217,7 +216,7 @@ case class Area(xRange: Range, yRange: Range):
     this.intersect(a).toList ++ thisDiffed ++ aDiffed
 
 object Area:
-  def apply(grid: IndexedSeq[IndexedSeq[_]]): Area =
+  def apply(grid: IndexedSeq[IndexedSeq[?]]): Area =
     Area(
       xRange = grid.headOption.fold(0 to 0)(_.indices),
       yRange = grid.indices
