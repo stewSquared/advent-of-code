@@ -160,6 +160,7 @@ case class Area(xRange: Range, yRange: Range):
 
   def width = xRange.size
   def height = yRange.size
+  def size = width * height
   def size[N : Integral] =
     Integral[N].fromInt(width) * Integral[N].fromInt(height)
 
