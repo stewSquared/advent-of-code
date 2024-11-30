@@ -25,6 +25,10 @@ area.topLeft.d.r.u.l
 area.topLeft.r.r.d.d
 area.botRight.u.u.l.l
 
+Area.bounding(Point(0,3), Point(4, 3)).size
+Area.bounding(Point(0,3), Point(4, 3)).xRange.size
+Area.bounding(Point(0,3), Point(4, 3)).yRange.size
+
 assert(Point(4, 1).cw == Point(-1, 4))
 
 val p = Point(3,4)
