@@ -1,4 +1,4 @@
-val input = io.Source.fromResource("2024/day-06.txt").getLines.toList
+val input = io.Source.fromResource("2024/day-06.txt").getLines.toVector
 
 import aoc.{Point, Area, Dir, Line}
 
@@ -9,23 +9,15 @@ val obstacles = Set.from:
     x <- area.xRange
     y <- area.yRange
     p = Point(x, y)
-    if input(p.y)(p.x) == '#'
+    if input(p) == '#'
   yield p
 
 case class Guard(pos: Point, dir: Dir)
 
 val initGuard: Guard = area
   .pointsIterator
-  .find: p =>
-    val c = input(p.y)(p.x)
-    c != '.' && c != '#'
-  .map: p =>
-    val c = input(p.y)(p.x)
-    c match
-      case '^' => Guard(p, Dir.N)
-      case 'v' => Guard(p, Dir.S)
-      case '<' => Guard(p, Dir.W)
-      case '>' => Guard(p, Dir.E)
+  .collectFirst:
+    case p if input(p) == '^' => Guard(p, Dir.N)
   .get
 
 def walk(guard: Guard, obstacles: Set[Point]): Guard =
@@ -35,38 +27,20 @@ def walk(guard: Guard, obstacles: Set[Point]): Guard =
   else
     Guard(next, guard.dir)
 
-def walk(guard: Guard, obstaclesVert: Map[Int, Set[Point]], obstaclesHorz: Map[Int, Set[Point]]): (Line, Guard) =
+def walk(guard: Guard, obstaclesVert: Map[Int, Set[Point]], obstaclesHorz: Map[Int, Set[Point]]): Option[Guard] =
   guard match
-    case Guard(pos, dir@Dir.N) if area.topBorder.contains(pos) => Line(pos, pos.move(dir)) -> Guard(pos.move(dir), dir)
-    case Guard(pos, dir@Dir.S) if area.botBorder.contains(pos) => Line(pos, pos.move(dir)) -> Guard(pos.move(dir), dir)
-    case Guard(pos, dir@Dir.E) if area.rightBorder.contains(pos) => Line(pos, pos.move(dir)) -> Guard(pos.move(dir), dir)
-    case Guard(pos, dir@Dir.W) if area.leftBorder.contains(pos) => Line(pos, pos.move(dir)) -> Guard(pos.move(dir), dir)
-
-    case Guard(pos@Point(x, y), dir@(Dir.N | Dir.S)) =>
+    case Guard(pos@Point(x, y), dir) =>
       val pointsInWay =
-        obstaclesVert(x)
-          .filter(o => if dir == Dir.N then o.y < y else o.y > y)
+        if dir.isVertical then
+          obstaclesVert(x)
+            .filter(o => if dir == Dir.N then o.y < y else o.y > y)
+        else
+          obstaclesHorz(y)
+            .filter(o => if dir == Dir.W then o.x < x else o.x > x)
 
-      if pointsInWay.isEmpty then
-        val endPos = pos.copy(y = if dir == Dir.N then area.yRange.min else area.yRange.max)
-        Line(pos, endPos) -> Guard(endPos, dir)
-      else
+      Option.when(pointsInWay.nonEmpty):
         val endPos = pointsInWay.minBy(pos.dist).move(dir.reverse)
-        val line = Line(pos, endPos)
-        line -> Guard(endPos, dir.turnRight)
-
-    case Guard(pos@Point(x, y), dir@(Dir.W | Dir.E)) =>
-      val pointsInWay =
-        obstaclesHorz(y)
-          .filter(o => if dir == Dir.W then o.x < x else o.x > x)
-
-      if pointsInWay.isEmpty then
-        val endPos = pos.copy(x = if dir == Dir.W then area.xRange.min else area.xRange.max)
-        Line(pos, endPos) -> Guard(endPos, dir)
-      else
-        val endPos = pointsInWay.minBy(pos.dist).move(dir.reverse)
-        val line = Line(pos, endPos)
-        line -> Guard(endPos, dir.turnRight)
+        Guard(endPos, dir.turnRight)
 
 val path = Iterator.iterate(initGuard)(walk(_, obstacles))
 
@@ -92,19 +66,11 @@ def linePath(guard: Guard, obs: Set[Point]): Iterator[Guard] =
   val obstaclesVert: Map[Int, Set[Point]] = obs.groupBy(_.x).withDefaultValue(Set.empty)
   val obstaclesHorz: Map[Int, Set[Point]] = obs.groupBy(_.y).withDefaultValue(Set.empty)
 
-  Iterator.iterate(guard)(walk(_, obstaclesVert, obstaclesHorz)._2)
-    .takeWhile:
-      case Guard(pos, _) => area.contains(pos)
-
-val obstaclesVert: Map[Int, Set[Point]] = obstacles.groupBy(_.x)
-val obstaclesHorz: Map[Int, Set[Point]] = obstacles.groupBy(_.y)
+  Iterator.unfold(guard): guard =>
+    val next = walk(guard, obstaclesVert, obstaclesHorz)
+    next.map(g => (g, g))
 
 val ans2 = (visited - initGuard.pos)
   .map(p => linePath(initGuard, obstacles + p))
   .filter(isLoop)
   .size
-
-// initGuard
-// area.topBorder.contains(initGuard.pos)
-// walk(initGuard, obstaclesVert, obstaclesHorz)
-// linePath(initGuard, obstacles) foreach println
