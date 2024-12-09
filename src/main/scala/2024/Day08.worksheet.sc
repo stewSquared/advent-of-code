@@ -4,35 +4,30 @@ import aoc.{Area, Point}
 
 val bounds = Area(grid)
 
-val antennas: Map[Point, Char] =
+val antennaGroups: Map[Char, List[Point]] =
   bounds.pointsIterator
     .collect:
-      case p if grid(p) != '.' => p -> grid(p)
-    .toMap
+      case p if grid(p) != '.' => grid(p) -> p
+    .toList
+    .groupMap(_._1)(_._2)
 
-val antennaGroups: Map[Char, List[Point]] =
-  antennas.toList.groupMap((p, c) => c)((p, c) => p)
-
-def antinodes(ps: List[Point]): List[Point] =
+def antinodes(ps: List[Point]): Set[Point] =
   ps.combinations(2)
     .flatMap:
       case List(p1, p2) =>
         val d = p2 - p1
         List(p2 + d, p1 - d)
-    .toList
-    .distinct
+    .toSet
 
 val ans1 = antennaGroups.values
-  .flatMap(antinodes)
+  .map(antinodes).reduce(_ union _)
   .filter(bounds.contains)
-  .toList
-  .distinct.size
+  .size
 
-def gcf(a: Int, b: Int): Int =
+def gcf(a: Int, b: Int): Int = // TODO add to math library
   if b == 0 then a else gcf(b, a % b)
 
-def antinodes2(ps: List[Point]): List[Point] =
-  // TODO check 1 antenna
+def antinodes2(ps: List[Point]): Set[Point] =
   ps.combinations(2)
     .flatMap:
       case List(p1, p2) =>
@@ -44,19 +39,15 @@ def antinodes2(ps: List[Point]): List[Point] =
         val as1 = Iterator
           .iterate(p1)(_ + e)
           .takeWhile(bounds.contains)
-          .toList
 
         val as2 = Iterator
-          .iterate(p2)(_ - e)
+          .iterate(p1)(_ - e)
           .takeWhile(bounds.contains)
-          .toList
 
-        as1 ++ as2
-    .toList
-    .distinct
+        (as1 ++ as2)
+    .toSet
 
-val ans2 = antennaGroups.values
-  .flatMap(antinodes2)
-  // .filter(bounds.contains)
-  .toList
-  .distinct.size
+val ans2 = antennaGroups
+  .values.map(antinodes2)
+  .reduce(_ union _)
+  .size
