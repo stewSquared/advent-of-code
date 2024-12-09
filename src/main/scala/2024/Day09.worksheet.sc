@@ -3,47 +3,17 @@ val input = io.Source.fromResource("2024/day-09.txt").getLines.mkString
 
 import aoc.Interval
 
-val diskMap: Map[Int, Interval[Int]] = input
+val occupiedIntervals: List[Interval[Int]] = (input + "0")
   .grouped(2)
-  .zipWithIndex
-  .foldLeft(List.empty[(Int, Interval[Int])], 0):
-    case (state, (chars, id)) if chars.size == 2 =>
+  .foldLeft(0, List.empty[Interval[Int]]):
+    case ((index, intervals), chars) =>
       val fileBlocksSize = chars(0).asDigit
       val freeBlocksSize = chars(1).asDigit
-      val (blocks, pos) = state
-      val newBlock = (id -> Interval(pos, pos + fileBlocksSize - 1))
-      (newBlock :: blocks) -> (pos + fileBlocksSize + freeBlocksSize)
-    case (state, (chars, id)) =>
-      val fileBlocksSize = chars(0).asDigit
-      val freeBlocksSize = 0
-      val (blocks, pos) = state
-      val newBlock = (id -> Interval(pos, pos + fileBlocksSize - 1))
-      (newBlock :: blocks) -> (pos + fileBlocksSize + freeBlocksSize)
-  ._1.reverse
-  .toMap
+      val newIndex = index + fileBlocksSize + freeBlocksSize
 
-val occupied = // pos -> id
-  diskMap.toList.flatMap:
-    case (id, interval) =>
-      interval.toRange.map(_ -> id).toList
-  .toMap[Int, Int]
-
-val occupiedReverse = // ids from end
-   occupied.toList.sortBy(_._1).map(_._2).reverse
-
-val sizeOccupied = diskMap.values.map(_.size).sum
-
-object TailRec:
-  def checkSum(from: Int, fillFrom: List[Int], sum: Long): Long =
-    if from == sizeOccupied then sum else
-      if occupied.contains(from) then
-        println(s"$from * ${occupied(from)}")
-        checkSum(from + 1, fillFrom, sum + from * occupied(from))
-      else
-        println(s"$from * ${fillFrom.head}")
-        checkSum(from + 1, fillFrom.tail, sum + from * fillFrom.head)
-
-val ans1 = TailRec.checkSum(0, occupiedReverse, 0)
+      val newInterval = Interval(index until (index + fileBlocksSize))
+      newIndex -> (newInterval :: intervals)
+  ._2.reverse
 
 val freeIntervals: List[Interval[Int]] = input
   .grouped(2)
@@ -61,18 +31,27 @@ val freeIntervals: List[Interval[Int]] = input
         newIndex -> (newInterval :: intervals)
   ._2.reverse
 
-val occupiedIntervals: List[Interval[Int]] = (input + "0")
-  .grouped(2)
-  .foldLeft(0, List.empty[Interval[Int]]):
-    case ((index, intervals), chars) =>
-      val fileBlocksSize = chars(0).asDigit
-      val freeBlocksSize = chars(1).asDigit
-      val newIndex = index + fileBlocksSize + freeBlocksSize
+val idsFromEnd = occupiedIntervals
+  .zipWithIndex
+  .reverse
+  .flatMap((interval, id) => interval.toRange.map(_ => id))
 
-      val newInterval = Interval(index until (index + fileBlocksSize))
-      newIndex -> (newInterval :: intervals)
-  ._2.reverse
+val idChunkStarts = occupiedIntervals
+  .zipWithIndex
+  .map((interval, id) => interval.min -> id)
+  .toMap
 
+val sizeOccupied = occupiedIntervals.map(_.size).sum
+
+object TailRec:
+  def checkSum(from: Int, fillFrom: List[Int], sum: Long): Long =
+    if from == sizeOccupied then sum else
+      if idChunkStarts.contains(from) then
+        checkSum(from + 1, fillFrom, sum + from * idChunkStarts(from))
+      else
+        checkSum(from + 1, fillFrom.tail, sum + from * fillFrom.head)
+
+val ans1 = TailRec.checkSum(0, idsFromEnd, 0)
 
 object Compact:
   def compact(
