@@ -14,56 +14,25 @@ val path: List[Point] =
       case None => List(pos)
   search(startPos, Set.empty)
 
-val heatMap = path.zipWithIndex.toMap
-
-heatMap(startPos)
-val normalTime = heatMap(endPos)
+val normalTime = path.zipWithIndex.toMap
 
 def cheat(p: Point): Option[Int] =
   val pathPoints = p.adjacent.filter(area.contains).filterNot(walls)
   // Note: assuming no diagonal walls
   Option.when(pathPoints.size == 2):
-    val List(a, b) = pathPoints.toList.sortBy(heatMap)
-    heatMap(endPos) - heatMap(b) + heatMap(a) + 2
-
-cheat(startPos.r)
-
-def timeSaved(from: Point, to: Point): Int =
-  // assert(heatMap(from) < heatMap(to)) // or maybe option
-  - (heatMap(from) - heatMap(to) + from.dist(to))
-
-def cheatable(from: Point): List[Point] =
-  val surrounding = Area.bounding(Set(from)).expand(20)
-  path.filter(surrounding.contains)
-    .filter(_.dist(from) <= 20)
-    .filter(to => timeSaved(from, to) >= 100)
-
-def connectedByWalls(from: Point, to: Point): Boolean = true
-
-// startPos
-// Area.bounding(Set(startPos)).expand(20)
-// path.filter(Area.bounding(Set(startPos)).expand(20).contains)
-// path.filter(Area.bounding(Set(startPos)).expand(20).contains)
-//   .map(timeSaved(startPos, _))
-//   .count(_ >= 50)
-
-// cheatable(startPos)
-
-val ans2 = path
-  .map: start =>
-    cheatable(start).count: end =>
-      connectedByWalls(start, end)
-  .sum
-// too high
-
-// def cheat2(p: Point): List[Int] =
+    val List(a, b) = pathPoints.toList.sortBy(normalTime)
+    normalTime(endPos) - normalTime(b) + normalTime(a) + 2
 
 val innerWallPoints = walls.filter(area.expand(-1).contains).toList
 
-innerWallPoints
+val ans1 = innerWallPoints
   .flatMap(cheat)
-  .count(((normalTime - 64) to (normalTime - 20)).contains)
+  .count(_ <= normalTime(endPos) - 100)
 
-// val ans1 = innerWallPoints
-//   .flatMap(cheat)
-//   .count(_ <= normalTime - 100)
+def timeSaved(from: Point, to: Point): Int =
+  - (normalTime(from) - normalTime(to) + from.dist(to))
+
+def cheatable(from: Point): List[Point] =
+  path.filter(to => from.dist(to) <= 20 && timeSaved(from, to) >= 100)
+
+val ans2 = path.map(cheatable(_).size).sum
