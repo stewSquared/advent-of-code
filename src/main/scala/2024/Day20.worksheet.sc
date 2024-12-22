@@ -35,6 +35,7 @@ def timeSaved(from: Point, to: Point): Int =
 def cheatable(from: Point): List[Point] =
   val surrounding = Area.bounding(Set(from)).expand(20)
   path.filter(surrounding.contains)
+    .filter(_.dist(from) <= 20)
     .filter(to => timeSaved(from, to) >= 100)
 
 def connectedByWalls(from: Point, to: Point): Boolean = true
