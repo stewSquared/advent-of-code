@@ -11,11 +11,11 @@ val trips: List[List[String]] = adj.toList.flatMap:
 
 val ans1 = trips.count(_.exists(_.startsWith("t")))
 
-def connected12(nodes: List[String]): Boolean =
-  nodes.combinations(12).exists: vs =>
+def connected12(nodes: List[String]): Option[List[String]] =
+  nodes.combinations(12).find: vs =>
     vs.combinations(2).forall:
       case List(a, b) => adj(a).contains(b)
 
-val ans2 = adj.collect:
-  case (k, vs) if connected12(vs) => k
-.toList.sorted.mkString(",")
+val ans2 = adj.view.mapValues(connected12).collectFirst:
+  case (k, Some(vs)) => (k::vs).sorted.mkString(",")
+.get
