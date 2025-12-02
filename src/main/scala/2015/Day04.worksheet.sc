@@ -9,9 +9,9 @@ def md5(s: String): String =
 md5("abcdef" + 609043.toString)
 
 val ans1 = Iterator.from(1).find: n =>
-  md5(input + n.toString).take(5).forall(_ == '0')
+  md5(input + n.toString).startsWith("00000")
 .get
 
-// val ans2 = Iterator.from(1).find: n =>
-//   md5(input + n.toString).take(6).forall(_ == '0')
-// .get
+val ans2 = Iterator.from(1).find: n =>
+  md5(input + n.toString).startsWith("000000")
+.get
