@@ -6,10 +6,8 @@ val (positions, counts) = input.scanLeft(50, 0):
     (math.floorMod(next, 100), count + next / 100)
   case ((pos, count), s"L$d") =>
     val next = pos - d.toInt
-    val clicks =
-      if pos == 0 then next / -100
-      else if next <= 0 then next / -100 + 1
-      else 0
+    val zeroClick = pos != 0 && next <= 0
+    val clicks = next / -100 + (if zeroClick then 1 else 0)
 
     (math.floorMod(next, 100), count + clicks)
 .unzip
