@@ -7,9 +7,8 @@ val rotations = input.collect:
 val (positions, clicks) = rotations.scanLeft(50, 0):
   case ((pos, _), rot) =>
     val next = pos + rot
-    val zeroClick = pos != 0 && next <= 0
-    val clicks = next.abs / 100 + (if zeroClick then 1 else 0)
-
+    val leftToZero = pos != 0 && next <= 0
+    val clicks = next.abs / 100 + (if leftToZero then 1 else 0)
     (math.floorMod(next, 100), clicks)
 .unzip
 
