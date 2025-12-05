@@ -4,12 +4,10 @@ import aoc.Interval
 
 val fresh = input.collect:
   case s"$a-$b" => Interval(a.toLong, b.toLong)
+.foldLeft(List.empty[Interval[Long]]):
+  case (acc, n) => n.union(acc)
 
 val available = input.flatMap(_.toLongOption)
 
-val ans1 = available.count(id => fresh.exists(r => r.contains(id)))
-
-val union = fresh.foldLeft(List.empty[Interval[Long]]):
-  case (acc, n) => n.union(acc)
-
-val ans2 = union.map(_.size).sum
+val ans1 = available.count(id => fresh.exists(_.contains(id)))
+val ans2 = fresh.map(_.size).sum
