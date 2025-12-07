@@ -1,22 +1,21 @@
 val input = "1321131112"
 
 def lookSay(look: String): String =
-  var head = look.head
-  val digits = look.iterator.buffered
-  val say = collection.mutable.StringBuilder()
-  var count = 0
-  while digits.hasNext do
-    val next = digits.next()
-    if next == head then
-      count += 1
-    else
-      say ++= count.toString
-      say += head
-      head = next
-      count = 1
-  say ++= count.toString
-  say += head
-  say.toString()
+  val n = look.length
+  val pairs = Iterator.unfold(0):
+    case (start) => Option.when(start < n):
+      val head = look.charAt(start)
+      val end = look.indexWhere(_ != head, start + 1) match
+        case -1 => n
+        case i => i
+      val count = end - start
+      (count, head) -> end
+
+  val say = StringBuilder(look.length * 2)
+  for (count, head) <- pairs do
+    say ++= count.toString
+    say += head
+  say.result()
 
 lookSay(input)
 
