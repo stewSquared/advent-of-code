@@ -1,72 +1,51 @@
 val input = io.Source.fromResource("2025/day-08.txt").getLines().toList
 
-case class Point(x: Int, y: Int, z: Int):
+case class Point(x: Long, y: Long, z: Long):
   def dist(p: Point): Long =
-    val dx = x.toLong - p.x.toLong
-    val dy = y.toLong - p.y.toLong
-    val dz = z.toLong - p.z.toLong
+    val dx = x - p.x
+    val dy = y - p.y
+    val dz = z - p.z
     dx*dx + dy*dy + dz*dz
 
+type Edge = (Point, Point)
+type Adj = Map[Point, Set[Point]]
+
 val boxes: List[Point] = input.collect:
-  case s"$x,$y,$z" => Point(x.toInt, y.toInt, z.toInt)
-.sortBy(p => (p.x, p.y, p.z))
+  case s"$x,$y,$z" => Point(x.toLong, y.toLong, z.toLong)
 
 val edges = boxes.combinations(2).collect:
-  case List(a, b) => a -> b
+  case List(p, q) => p -> q
 .toList.sortBy(_.dist(_))
 
-boxes.size
-edges.size
+def connect(adj: Adj, edge: Edge): Adj =
+  val (p, q) = edge
+  adj.updated(p, adj(p) + q)
+    .updated(q, adj(q) + p)
 
-type Edge = (Point, Point)
-
-def sameCircuit(a: Point, b: Point, adj: Map[Point, Set[Point]]): Boolean =
-  def search(visited: Set[Point], current: Set[Point]): Boolean =
-    current.nonEmpty && (current.contains(b) || locally:
-      val next = current.flatMap(adj).diff(visited)
-      search(visited.union(current), next)
-    )
-  search(Set.empty, Set(a))
-
-def connect(edge: (Point, Point), adj: Map[Point, Set[Point]]): Map[Point, Set[Point]] =
-  val (a, b) = edge
-  adj.updated(a, adj(a) + b)
-    .updated(b, adj(b) + a)
-
-val emptyAdj = Map.empty[Point, Set[Point]].withDefaultValue(Set.empty)
-
-val allStates = edges.scanLeft(emptyAdj):
-  case (adj, edge@(a, b)) => connect(edge, adj)
-
-val endState = allStates(1000)
-
-def component(a: Point, adj: Map[Point, Set[Point]]): Set[Point] =
+def component(a: Point, adj: Adj): Set[Point] =
   def flood(visited: Set[Point], current: Set[Point]): Set[Point] =
     if current.isEmpty then visited else
       val next = current.flatMap(adj).diff(visited)
       flood(visited.union(current), next)
   flood(Set.empty, Set(a))
 
-def components(adj: Map[Point, Set[Point]]) =
+def components(adj: Adj) = List.from:
   Iterator.unfold(boxes.toSet): unsorted =>
-    Option.unless(unsorted.isEmpty):
-      val a = unsorted.head
-      val c = component(a, adj)
+    unsorted.headOption.map: p =>
+      val c = component(p, adj)
       c -> unsorted.diff(c)
-  .toList
 
-val ans1 = components(endState).toList.map(_.size)
+val emptyAdj: Adj = Map.empty.withDefaultValue(Set.empty)
+val states = LazyList.from(edges).scanLeft(emptyAdj)(connect(_, _))
+
+val ans1 = components(states(1000)).map(_.size)
   .sorted.takeRight(3).product
 
-def fullyConnected(adj: Map[Point, Set[Point]]): Boolean =
-  val a = adj.head._1
-  component(a, adj).sizeIs == boxes.size
+def fullyConnected(adj: Adj): Boolean =
+  adj.keys.headOption.exists(component(_, adj).sizeIs == boxes.size)
 
-// val index = allStates.drop(1).indexWhere(fullyConnected)
-// val finalEdge = edges(index)
+val finalEdge = edges(states.indexWhere(fullyConnected))
 
-// val ans2 =
-//   val (a, b) = finalEdge
-//   a.x.toLong * b.x.toLong
-
-// 741379604
+val ans2 =
+  val (p, q) = finalEdge
+  p.x.toLong * q.x.toLong
