@@ -1,8 +1,8 @@
 package aoc
 
 import collection.immutable.NumericRange
-import math.Integral.Implicits.infixIntegralOps
-import math.Ordering.Implicits.infixOrderingOps
+import scala.math.Integral.Implicits.infixIntegralOps
+import scala.math.Ordering.Implicits.infixOrderingOps
 
 case class Point(x: Int, y: Int):
   def n = copy(y = y - 1)
@@ -24,6 +24,11 @@ case class Point(x: Int, y: Int):
   def d = s
   def l = w
   def r = e
+
+  infix def above(p: Point): Boolean = this.y < p.y
+  infix def below(p: Point): Boolean = this.y > p.y
+  infix def leftOf(p: Point): Boolean = this.x < p.x
+  infix def rightOf(p: Point): Boolean = this.x > p.x
 
   def swap = Point(y, x)
 
@@ -52,6 +57,10 @@ case class Point(x: Int, y: Int):
 
   def plus(p: Point) = Point(x + p.x, y + p.y)
   def minus(p: Point) = Point(x - p.x, y - p.y)
+
+  infix def -(p: Point) = minus(p)
+  infix def +(p: Point) = plus(p)
+  infix def *(n: Int) = Point(x * n, y * n)
 
   def cw: Point = Point(-y, x)
   def ccw: Point = Point(y, -x)
@@ -86,12 +95,27 @@ enum Dir:
     case Dir.W => E
     case Dir.N => S
 
+  def isVertical = this == Dir.N || this == Dir.S
+  def isHorizontal = this == Dir.E || this == Dir.W
+
 case class Line(p: Point, q: Point):
   def dx = q.x - p.x
   def dy = q.y - p.y
 
   def horizontal = dy == 0
   def vertical = dx == 0
+
+  def size =
+    if horizontal then xRange.size
+    else if vertical then yRange.size
+    else // diagonal
+      assert(dx.abs == dy.abs)
+      xRange.size
+
+  def contains(r: Point) =
+    if horizontal then xRange.contains(r.x) && r.y == p.y
+    else if vertical then yRange.contains(r.y) && r.x == p.x
+    else (r - p).x == (r - p).y
 
   def xRange = p.x to q.x by (if vertical then 1 else dx.sign)
   def yRange = p.y to q.y by (if horizontal then 1 else dy.sign)
@@ -112,6 +136,13 @@ case class Interval[N : Integral](min: N, max: N):
   def toRange: Range = Range.inclusive(min.toInt, max.toInt)
   def toNumericRange = NumericRange.inclusive[N](min, max, one)
   def iterator = toNumericRange.iterator
+
+  def shift(n: N): Interval[N] =
+    this.copy(min = this.min + n, max = this.max + n)
+
+  def expand(n: N): Interval[N] =
+    // TODO error when too small
+    Interval(this.min - n, this.max + n)
 
   def supersetOf(r: Interval[N]) = min <= r.min && r.max <= max
 
