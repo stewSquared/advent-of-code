@@ -1,19 +1,10 @@
-val input = io.Source.fromResource("2025/day-12.txt").getLines().toList
+val input = io.Source.fromResource("2025/day-12.txt").getLines
 
-val shapeVolumes = List.from:
-  Iterator.unfold(input): lines =>
-    Option.when(lines.head.endsWith(":")):
-      val grid = lines.slice(1,5)
-      val volume = grid.map(_.count(_ == '#')).sum
-      volume -> lines.drop(5)
-
-val regions = input.collect:
+val lowerBound = input.collect:
   case s"${w}x${l}: $counts" =>
-    val area = w.toInt * l.toInt
-    area -> counts.split(' ').map(_.toInt).toList
-
-val lowerBound = regions.count:
-  case (area, counts) =>
-    shapeVolumes.zip(counts).map(_ * _).sum <= area
+    val spots = (w.toInt/3) * (l.toInt/3)
+    spots -> counts.split(' ').map(_.toInt).toList
+.count:
+  case (spots, counts) => counts.sum <= spots
 
 val ans1 = lowerBound
