@@ -16,4 +16,9 @@ val lowerBound = regions.count:
   case (area, counts) =>
     shapeVolumes.zip(counts).map(_ * _).sum <= area
 
+val upperBound = regions.count:
+  case (area, counts) => counts.sum * 9 <= area
+
+assert(lowerBound == upperBound)
+
 val ans1 = lowerBound
