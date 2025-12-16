@@ -28,8 +28,6 @@ import numbers.*
 
   Iterator.unfold(start)(_.step).flatten.foreach: ch =>
     print(ch)
-    Thread.sleep(100)
+    Thread.sleep(80)
 
-  println
-
-  //
+  println("Synacor VM Halted")

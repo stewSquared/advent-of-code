@@ -83,7 +83,7 @@ case class VMState(pc: Adr, registers: Registers, stack: Stack, memory: Memory):
   def write(a: Adr, v: Lit) = this.copy(memory = memory.updated(a, v))
 
   def step: Tick = op match
-    case HALT => None
+    case HALT | IN => None
     case SET => store(a.reg, b.value).progress.noOutput
     case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
     case POP => this.pop match

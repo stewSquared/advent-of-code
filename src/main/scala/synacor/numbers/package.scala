@@ -12,7 +12,7 @@ extension (n: Int)
 
 object Word:
   def fromBytes(low: Byte, high: Byte): Word =
-    low & 0xFF | (high << 8) & 0xFF00 // TODO verify
+    low & 0xFF | (high << 8) & 0xFF00
 
   def fromInt(n: Int): Word =
     require(n <= 0xFFFF)
