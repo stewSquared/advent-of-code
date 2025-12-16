@@ -1,5 +1,0 @@
-package synacor
-
-class VM
-
-//
