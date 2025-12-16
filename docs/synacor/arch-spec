@@ -8,7 +8,7 @@ your progress.  Good luck!
 == architecture ==
 - three storage regions
   - memory with 15-bit address space storing 16-bit values
-  - eight registers
+  - eight registers // that store 16-bit word?
   - an unbounded stack which holds individual 16-bit values
 - all numbers are unsigned integers 0..32767 (15-bit)
 - all math is modulo 32768; 32758 + 15 => 5
@@ -37,23 +37,23 @@ halt: 0
   stop execution and terminate the program
 set: 1 a b
   set register <a> to the value of <b>
-push: 2 a
+push: 2 a: Lit | Reg
   push <a> onto the stack
-pop: 3 a
+pop: 3 a: Reg
   remove the top element from the stack and write it into <a>; empty stack = error
-eq: 4 a b c
+eq: 4 a: Reg, b c
   set <a> to 1 if <b> is equal to <c>; set it to 0 otherwise
 gt: 5 a b c
   set <a> to 1 if <b> is greater than <c>; set it to 0 otherwise
-jmp: 6 a
+jmp: 6 a: Adr
   jump to <a>
-jt: 7 a b
+jt: 7 a: Lit | Reg, b: Adr
   if <a> is nonzero, jump to <b>
-jf: 8 a b
+jf: 8 a: Lit | Reg, b: Adr
   if <a> is zero, jump to <b>
-add: 9 a b c
+add: 9 a: Reg, b: Lit | Reg, c: Lit | Reg
   assign into <a> the sum of <b> and <c> (modulo 32768)
-mult: 10 a b c
+mult: 10 a: Reg, b: Lit | Reg, c: Lit | Reg
   store into <a> the product of <b> and <c> (modulo 32768)
 mod: 11 a b c
   store into <a> the remainder of <b> divided by <c>
@@ -63,11 +63,11 @@ or: 13 a b c
   stores into <a> the bitwise or of <b> and <c>
 not: 14 a b
   stores 15-bit bitwise inverse of <b> in <a>
-rmem: 15 a b
+rmem: 15 a: Reg, b: Adr
   read memory at address <b> and write it to <a>
-wmem: 16 a b
+wmem: 16 a: Adr, b: Lit | Reg
   write the value from <b> into memory at address <a>
-call: 17 a
+call: 17 a: Adr
   write the address of the next instruction to the stack and jump to <a>
 ret: 18
   remove the top element from the stack and jump to it; empty stack = halt
