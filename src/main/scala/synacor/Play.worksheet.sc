@@ -1,5 +1,3 @@
-"Hello, Synacor!"
-
 enum Opcode:
   case HALT, SET
   case PUSH, POP
