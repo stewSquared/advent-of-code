@@ -1,3 +1,6 @@
+import synacor.*
+import synacor.numbers.*
+
 enum Opcode:
   case HALT, SET
   case PUSH, POP
@@ -16,123 +19,98 @@ enum Opcode:
     case PUSH | POP | JMP | CALL | OUT | IN => 1
     case _ => 0
 
-// val x = 0xFF
-// 0b100
-// 1234L
+case class Registers(underlying: IArray[Word]):
+  require(underlying.sizeIs == 8)
+  def apply(r: Reg): Word = underlying(r.toIndex)
 
-case class Num(low: Byte, high: Byte):
-  def asShort: Short = ((high << 8) + low).toShort
-  def asInt: Int = asShort.toInt
-  def asChar: Char = ((high << 8) + low).toChar
-  def increment: Num = copy(low = (low + 1).toByte) // TODO overflow
+  def updated(r: Reg, w: Word): Registers =
+    Registers(underlying.updated(r.toIndex, w))
 
-  infix def +(n: Num): Num = Num((n.low + low).toByte, (n.high + high).toByte) // TODO carry
-  infix def +(n: Int): Num = Num((n & 0xFF + low).toByte, (n & 0xFF00).toByte) // TODO carry
+object Registers:
+  def apply(
+    r0: Word,
+    r1: Word,
+    r2: Word,
+    r3: Word,
+    r4: Word,
+    r5: Word,
+    r6: Word,
+    r7: Word
+  ): Registers = Registers.apply(IArray(r0, r1, r2, r3, r4, r5, r6, r7))
+  def init: Registers =
+    Registers.apply(IArray.fill(8)(Word.fromInt(0)))
 
-  infix def *(n: Num): Num = Num.fromInt:
-    (asInt * n.asInt) // TODO verify signed works
+type Stack = List[Word]
+case class Memory(underlying: Vector[Word]):
+  def apply(a: Adr): Word = underlying(a.toIndex)
+  def updated(a: Adr, w: Word): Memory =
+    Memory(underlying.updated(a.toIndex, w))
 
-  infix def %(n: Num): Num = Num.fromInt:
-    (asInt % n.asInt) // TODO verify signed works
+type Tick = Option[(Option[Char], VMState)]
 
+case class VMState(pc: Adr, registers: Registers, stack: Stack, memory: Memory):
+  import Opcode.*
 
-  infix def &(n: Num): Num =
-    Num((n.low & low).toByte, (n.high & high).toByte)
+  def noOutput: Tick = Some(None -> this)
+  def output(w: Word): Tick = Some(Some(w.asChar) -> this)
 
-  infix def |(n: Num): Num =
-    Num((n.low | low).toByte, (n.high | high).toByte)
+  def op: Opcode = memory(pc).op
+  def a: Word = memory(pc.inc1)
+  def b: Word = memory(pc.inc2)
+  def c: Word = memory(pc.inc3)
 
-  infix def >(n: Num): Boolean = asInt > n.asInt
+  def nextInstruction: Adr = op.numParams match
+    case 0 => pc.inc1
+    case 1 => pc.inc2
+    case 2 => pc.inc3
+    case 3 => pc.inc4
 
-  def not: Num = Num.fromInt(~asInt)
+  def progress: VMState = this.copy(pc = nextInstruction)
+  def jump(a: Adr): VMState = this.copy(pc = a)
 
-object Num: // TODO Integral typeclass
-  // implicit conversions?
-  def fromShort(s: Short): Num =
-    Num(low = (s & 0xFF).toByte, high = (s & 0xFF00).toByte)
+  def store(r: Reg, v: Lit): VMState = this.copy(registers = registers.updated(r, v))
+  def deref(r: Reg): Lit = registers(r).lit
+  extension (w: Word)
+    def value: Lit = if w.fitsU15 then deref(w.reg) else w.lit
 
-  def fromInt(n: Int): Num =
-    Num(low = (n & 0xFF).toByte, high = (n & 0xFF00).toByte)
+  def push(w: Adr | Lit): VMState = this.copy(stack = w :: stack)
+  def pop: Option[(Word, VMState)] =
+    stack.headOption.map(_ -> this.copy(stack = stack.tail))
 
+  def read(a: Adr): Word = memory(a)
+  def write(a: Adr, v: Lit) = this.copy(memory = memory.updated(a, v))
 
-  // infix def not(n: Num): Num =
-  //   Num(n.low | low, n.high | high)
-
-
-  // TODO: implicit conversions?
-
-// type Num = Int
-
-extension (n: Int)
-  def toNum: Num = Num.fromInt(n)
-
-case class Registers(
-  a: Num,
-  b: Num,
-  c: Num,
-  d: Num,
-  e: Num,
-  f: Num,
-  g: Num,
-  h: Num
-):
-  val values = Array(a,b,c,d,e,f,g,h)
-  def apply(i: Int): Num = values(i)
-
-type Stack = List[Num]
-type Memory = Map[Num, Num]
-
-case class State(pc: Num, registers: Registers, stack: Stack, memory: Memory):
-
-  def progress(op: Opcode): State = copy(pc = pc + 1 + op.numParams)
-
-  def noOutput = Some(None -> this)
-  def output(n: Num) = Some(Some(n.asChar) -> this)
-
-  // register? constant? address?
-  // TODO memory/register safety
-  def a: Num = memory(pc + 1)
-  def b: Num = memory(pc + 2)
-  def c: Num = memory(pc + 3)
-
-  def store(pos: Num, v: Num) = this.copy(memory = memory.updated(pos, v))
-
-  def step(op: Opcode): Option[(Option[Char], State)] = op match
-    case Opcode.HALT => None
-    case Opcode.SET => this.noOutput
-    case Opcode.PUSH => this.noOutput
-    case Opcode.POP => this.noOutput
-    case Opcode.EQ =>
-      val x = if b == c then 1.toNum else 0.toNum
-      store(a, x).noOutput
-    case Opcode.GT =>
-      val x = if b > c then 1.toNum else 0.toNum
-      store(a, x).noOutput
-    case Opcode.JMP => this.copy(pc = a).noOutput
-    case Opcode.JT =>
-      if a != 0.toNum then this.copy(pc = b).noOutput
-      else this.progress(op).noOutput
-    case Opcode.JF =>
-      if a == 0.toNum then this.copy(pc = b).noOutput
-      else this.progress(op).noOutput
-    case Opcode.ADD => this.store(a, b + c).progress(op).noOutput
-    case Opcode.MULT => this.store(a, b * c).progress(op).noOutput
-    case Opcode.MOD => this.store(a, b % c).progress(op).noOutput
-    case Opcode.AND => this.store(a, b & c).progress(op).noOutput
-    case Opcode.OR => this.store(a, b | c).progress(op).noOutput
-    case Opcode.NOT => this.store(a, b.not).progress(op).noOutput
-    case Opcode.RMEM => this.store(b, a).progress(op).noOutput // TODO register check?
-    case Opcode.WMEM => this.store(a, b).progress(op).noOutput // TODO register check?
-    case Opcode.CALL => this.noOutput
-    case Opcode.RET => this.noOutput
-    case Opcode.OUT => this.output(a) // TODO progress
-    case Opcode.IN => this.noOutput
-    case Opcode.NOOP => this.progress(op).noOutput
-
-
-// TODO test overflows
-
-// val binary = io.source
-
-
-//
+  def step: Tick = op match
+    case HALT => None
+    case SET => store(a.reg, b.value).progress.noOutput
+    case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
+    case POP => this.pop match
+      case Some(w -> s) => s.store(a.reg, w.value).progress.noOutput
+      case None => ???
+    case EQ =>
+      val x: Lit = if b.value == c.value then 1.toLit else 0.toLit
+      store(a.reg, x).noOutput
+    case GT =>
+      val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
+      store(a.reg, x).noOutput
+    case JMP => jump(a.adr).noOutput
+    case JT =>
+      if a.value != 0.toLit then this.copy(pc = b.adr).noOutput
+      else this.progress.noOutput
+    case JF =>
+      if a.value == 0.toLit then this.copy(pc = b.adr).noOutput
+      else this.progress.noOutput
+    case ADD => this.store(a.reg, b.value + c.value).progress.noOutput
+    case MULT => this.store(a.reg, b.value * c.value).progress.noOutput
+    case MOD => this.store(a.reg, b.value % c.value).progress.noOutput
+    case AND => this.store(a.reg, b.value & c.value).progress.noOutput
+    case OR => this.store(a.reg, b.value | c.value).progress.noOutput
+    case NOT => this.store(a.reg, ~(b.value)).progress.noOutput
+    case RMEM => this.store(b.reg, read(a.adr).lit).progress.noOutput
+    case WMEM => this.write(a.adr, b.value).progress.noOutput
+    case CALL => this.push(nextInstruction).jump(a.adr).noOutput
+    case RET => this.pop.flatMap:
+      case (w, s) => s.jump(w.adr).noOutput
+    case OUT => this.progress.output(a)
+    case IN => ???
+    case NOOP => this.progress.noOutput
