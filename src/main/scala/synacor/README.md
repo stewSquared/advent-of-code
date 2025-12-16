@@ -20,6 +20,19 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 
 - Implemented opcodes while slowly growing a DSL. We still need to introduce typesafety for words, proper memory and register handling, and Opcodes related to the call stack.
 
-## Roadmap
+### 2025-12-15 -- Part 2 -- Getting a Runnable VM Emulator
 
-- [ ] Write a roadmap
+- Added typesafe number system for handling words as literals, addresses, or register references. Backed by Int with opaque types.
+- Added proper memory model
+- Added proper register bank model
+- Implemented all Opcodes except IN
+- Loaded binary memory and ran a welcome message
+
+## Wishlist
+
+- [ ] Implement IN Opcode
+- [ ] Interface for entering input into running VM
+- [ ] Interact with power-on self test!
+- [ ] type params for valid state transitions?
+- [ ] use a state monad and transformer?
+- [ ] nice error types?
