@@ -59,7 +59,7 @@ type HasMoved[P <: Phase] = P <:< Moved
 
 type Tick = Option[(Option[Char], VMState[Ready])]
 
-case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory):
+case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory, input: List[Char] = Nil):
   import Opcode.*
 
   private def unsafeSetReady: VMState[Ready] = this.asInstanceOf[VMState[Ready]]
@@ -131,5 +131,14 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case RET => this.pop.flatMap:
       case (w, s) => s.jump(w.address).noOutput
     case OUT => this.progress.output(a)
-    case IN => ???
+    case IN =>
+      input match
+        case c :: cs =>
+          print(c)
+          this.store(a.reg, c.toLit).copy(input = cs).progress.noOutput
+        case Nil =>
+          val nextLine = io.StdIn.readLine("input: ") + "\n"
+          val s = this.copy[Ready](input = nextLine.toList)
+          println(s"about to recur with state: $s")
+          s.step
     case NOOP => this.progress.noOutput
