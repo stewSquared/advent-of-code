@@ -15,7 +15,7 @@ object Word:
     low & 0xFF | (high << 8) & 0xFF00
 
   def fromInt(n: Int): Word =
-    require(n <= 0xFFFF)
+    require(n <= 0xFFFF, s"${n.toHexString} is not a valid 16-bit word")
     n
 
   extension (w: Word)
@@ -26,13 +26,14 @@ object Word:
     //   if (w & 0x8000) == 0x8000 then Reg.fromInt(w)
     //   else Lit.fromInt(w)
     def asChar: Char = w.toChar
-    def fitsU15: Boolean = (w & 0x8000) == 0x8000
+    def fitsU15: Boolean = (w & 0x8000) != 0x8000
     def op: Opcode = Opcode.fromOrdinal(w)
+    def hex: String = s"${w.toHexString}%04"
 
 object U15:
   val MaxValue: U15 = 0x7FFF
   def fromInt(n: Int): U15 =
-    require(n <= U15.MaxValue)
+    require(n <= U15.MaxValue, s"${n.toHexString} is not a valid unsigned 15-bit integer")
     n
 
 object Adr:

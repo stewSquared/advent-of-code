@@ -48,13 +48,27 @@ case class Memory(underlying: Vector[Word]):
   def updated(a: Adr, w: Word): Memory =
     Memory(underlying.updated(a.toIndex, w))
 
-type Tick = Option[(Option[Char], VMState)]
+sealed trait Phase
+class Ready extends Phase
+class Updated extends Phase
+class Moved extends Phase
 
-case class VMState(pc: Adr, registers: Registers, stack: Stack, memory: Memory):
+type IsReady[P <: Phase] = P <:< Ready
+type CanMove[P <: Phase] = P <:< (Ready | Updated)
+type HasMoved[P <: Phase] = P <:< Moved
+
+type Tick = Option[(Option[Char], VMState[Ready])]
+
+case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory):
   import Opcode.*
 
-  def noOutput: Tick = Some(None -> this)
-  def output(w: Word): Tick = Some(Some(w.asChar) -> this)
+  private def unsafeSetReady: VMState[Ready] = this.asInstanceOf[VMState[Ready]]
+  def updateAgain(f: VMState[Ready] => VMState[Updated])(using P =:= Updated): VMState[Updated] =
+    f(this.unsafeSetReady)
+
+  def noOutput(using HasMoved[P]): Tick = Some(None -> this.unsafeSetReady)
+  def output(w: Word)(using HasMoved[P]): Tick =
+    Some(Some(deref(w).asChar) -> this.unsafeSetReady)
 
   def op: Opcode = memory(pc).op
   def a: Word = memory(pc.inc1)
@@ -67,40 +81,41 @@ case class VMState(pc: Adr, registers: Registers, stack: Stack, memory: Memory):
     case 2 => pc.inc3
     case 3 => pc.inc4
 
-  def progress: VMState = this.copy(pc = nextInstruction)
-  def jump(a: Adr): VMState = this.copy(pc = a)
+  def progress(using CanMove[P]): VMState[Moved] = this.copy(pc = nextInstruction)
+  def jump(a: Adr)(using CanMove[P]): VMState[Moved] = this.copy(pc = a)
 
-  def store(r: Reg, v: Lit): VMState = this.copy(registers = registers.updated(r, v))
-  def deref(r: Reg): Lit = registers(r).lit
-  extension (w: Word)
-    def value: Lit = if w.fitsU15 then deref(w.reg) else w.lit
+  def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(registers = registers.updated(r, v))
+  def deref(w: Word): Word = if w.fitsU15 then w else registers(w.reg)
 
-  def push(w: Adr | Lit): VMState = this.copy(stack = w :: stack)
-  def pop: Option[(Word, VMState)] =
+  extension (w: Word) def value: Lit = deref(w).lit
+  extension (w: Word) def address: Adr = deref(w).adr
+
+  def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
+  def pop(using IsReady[P]): Option[(Word, VMState[Updated])] =
     stack.headOption.map(_ -> this.copy(stack = stack.tail))
 
   def read(a: Adr): Word = memory(a)
-  def write(a: Adr, v: Lit) = this.copy(memory = memory.updated(a, v))
+  def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
 
-  def step: Tick = op match
-    case HALT | IN => None
+  def step(using IsReady[P]): Tick = op match
+    case HALT => None
     case SET => store(a.reg, b.value).progress.noOutput
     case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
     case POP => this.pop match
-      case Some(w -> s) => s.store(a.reg, w.value).progress.noOutput
+      case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
       case None => ???
     case EQ =>
-      val x: Lit = if b.value == c.value then 1.toLit else 0.toLit
-      store(a.reg, x).noOutput
+      val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
+      store(a.reg, x).progress.noOutput
     case GT =>
       val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
-      store(a.reg, x).noOutput
-    case JMP => jump(a.adr).noOutput
+      store(a.reg, x).progress.noOutput
+    case JMP => jump(a.address).noOutput
     case JT =>
-      if a.value != 0.toLit then this.copy(pc = b.adr).noOutput
+      if a.value != 0.toLit then this.jump(b.address).noOutput
       else this.progress.noOutput
     case JF =>
-      if a.value == 0.toLit then this.copy(pc = b.adr).noOutput
+      if a.value == 0.toLit then this.jump(b.address).noOutput
       else this.progress.noOutput
     case ADD => this.store(a.reg, b.value + c.value).progress.noOutput
     case MULT => this.store(a.reg, b.value * c.value).progress.noOutput
@@ -108,11 +123,13 @@ case class VMState(pc: Adr, registers: Registers, stack: Stack, memory: Memory):
     case AND => this.store(a.reg, b.value & c.value).progress.noOutput
     case OR => this.store(a.reg, b.value | c.value).progress.noOutput
     case NOT => this.store(a.reg, ~(b.value)).progress.noOutput
-    case RMEM => this.store(b.reg, read(a.adr).lit).progress.noOutput
-    case WMEM => this.write(a.adr, b.value).progress.noOutput
-    case CALL => this.push(nextInstruction).jump(a.adr).noOutput
+    case RMEM => this.store(a.reg, read(b.address).lit).progress.noOutput
+    case WMEM => this.write(a.address, b.value).progress.noOutput
+    case CALL => this
+      .push(nextInstruction)
+      .jump(a.address).noOutput
     case RET => this.pop.flatMap:
-      case (w, s) => s.jump(w.adr).noOutput
+      case (w, s) => s.jump(w.address).noOutput
     case OUT => this.progress.output(a)
     case IN => ???
     case NOOP => this.progress.noOutput

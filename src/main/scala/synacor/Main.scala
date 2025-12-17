@@ -19,7 +19,7 @@ import numbers.*
     Memory(a.toVector)
   .get
 
-  val start = VMState(
+  val start = VMState[Ready](
     pc = Adr.fromInt(0),
     registers = Registers.init,
     stack = Nil,
