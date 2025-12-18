@@ -28,11 +28,22 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - Implemented all Opcodes except IN
 - Loaded binary memory and ran a welcome message
 
+### 2025-12-16 -- Part 3 -- Exploring the text adventure
+
+- passed the power on self test
+- completed IN opcode
+- wired together a console
+- solved a maze in a text adventure
+- FSM for state transition
+
 ## Wishlist
 
-- [ ] Implement IN Opcode
+- [ ] figure the coin/math puzzle in the text adventure
+- [X] Implement IN Opcode
 - [ ] Interface for entering input into running VM
-- [ ] Interact with power-on self test!
-- [ ] type params for valid state transitions?
+- [X] Interact with power-on self test!
+- [X] type params for valid state transitions?
 - [ ] use a state monad and transformer?
+- [ ] ADT Algebraic data type for VM Ticks
+- [ ] Emulate at higher level so we can explore/diff/inject VM states
 - [ ] nice error types?
