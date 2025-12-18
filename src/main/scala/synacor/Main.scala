@@ -27,22 +27,19 @@ import numbers.*
       memory = memory,
     )
 
+  var emu: Emulator = Emulator(start, Nil)
 
-  def step(t: Tick): Option[(Option[Char], Tick)] = t match
-    case Tick.Halt(code, last) => None
-    case Tick.Output(c, state) => Some(Some(c), state.tick)
-    case Tick.Input(f) => Some(None, f(io.StdIn.readChar()).tick)
-    case Tick.Continue(state) => Some(None, state.tick)
-
-  var col = 0
-  Iterator.unfold(start)(step).flatten.foreach: ch =>
-    if ch == '\n' then col = 0
-    if col == 80 then
-      col = 0
-      println
-
-    col += 1
-    print(ch)
-    // Thread.sleep(1)
+  println("starting emulation...")
+  // if !emu.isRunning then emu else
+  while true do
+    val (out, next) = emu.nextOut
+    println(out) // TODO formatting
+    val in = io.StdIn.readLine()
+    in match
+      case "!halt" => ???
+      case "!rewind" => ???
+      case s"!set R${n}" => ??? // loop(emu.setRegister(n.toInt))
+      case command =>
+        emu = next.feed(s"${command}\n")
 
   println("Synacor VM Halted")
