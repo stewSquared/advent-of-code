@@ -36,14 +36,18 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - solved a maze in a text adventure
 - FSM for state transition
 
+### 2025-12-17 -- Part 4 -- Exploring the text adventure
+
+- finished the coin/math puzzle in the text adventure
+- added an algebraic data type for VM Ticks
+- wired together an emulator layer for easier interaction with state
+
 ## Wishlist
 
-- [ ] figure the coin/math puzzle in the text adventure
-- [X] Implement IN Opcode
-- [ ] Interface for entering input into running VM
+- [X] Interface for entering input into running VM
 - [X] Interact with power-on self test!
 - [X] type params for valid state transitions?
-- [ ] use a state monad and transformer?
-- [ ] ADT Algebraic data type for VM Ticks
-- [ ] Emulate at higher level so we can explore/diff/inject VM states
-- [ ] nice error types?
+- [?] use a state monad and transformer?
+- [X] ADT Algebraic data type for VM Ticks
+- [/] Emulate at higher level so we can explore/diff/inject VM states
+- [/] nice error types?
