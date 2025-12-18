@@ -8,6 +8,10 @@ lazy val root = project
 
     scalaVersion := scala3Version,
 
+    // Ensure interactive stdin works for `run`/`runMain` (fork new JVM and connect input)
+    fork := true,
+    connectInput := true,
+
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % "test",
       "com.github.vagmcs" %% "optimus" % "3.4.5",
