@@ -138,7 +138,5 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
           this.store(a.reg, c.toLit).copy(input = cs).progress.noOutput
         case Nil =>
           val nextLine = io.StdIn.readLine("input: ") + "\n"
-          val s = this.copy[Ready](input = nextLine.toList)
-          println(s"about to recur with state: $s")
-          s.step
+          this.copy[Ready](input = nextLine.toList).step
     case NOOP => this.progress.noOutput
