@@ -19,49 +19,23 @@ import numbers.*
     Memory(a.toVector)
   .get
 
-  val start = VMState[Ready](
-    pc = Adr.fromInt(0),
-    registers = Registers.init,
-    stack = Nil,
-    memory = memory,
-    input = """|go doorway
-               |go north
-               |go north
-               |go bridge
-               |continue
-               |go down
-               |go east
-               |take empty lantern
-               |go west
-               |go west
-               |go west
-               |go passage
-               |go ladder
-               |go west
-               |go south
-               |go north
-               |look can
-               |take can
-               |use can
-               |go west
-               |go ladder
-               |use lantern
-               |go darkness
-               |continue
-               |go west
-               |go west
-               |go west
-               |go west
-               |go north
-               |look red coin
-               |take red coin
-               |go north
-               |""".stripMargin.toList
-  )
+  val start = Tick.Continue:
+    VMState[Ready](
+      pc = Adr.fromInt(0),
+      registers = Registers.init,
+      stack = Nil,
+      memory = memory,
+    )
 
+
+  def step(t: Tick): Option[(Option[Char], Tick)] = t match
+    case Tick.Halt(code, last) => None
+    case Tick.Output(c, state) => Some(Some(c), state.tick)
+    case Tick.Input(f) => Some(None, f(io.StdIn.readChar()).tick)
+    case Tick.Continue(state) => Some(None, state.tick)
 
   var col = 0
-  Iterator.unfold(start)(_.step).flatten.foreach: ch =>
+  Iterator.unfold(start)(step).flatten.foreach: ch =>
     if ch == '\n' then col = 0
     if col == 80 then
       col = 0
