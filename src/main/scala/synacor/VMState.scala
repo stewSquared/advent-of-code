@@ -57,18 +57,41 @@ type IsReady[P <: Phase] = P <:< Ready
 type CanMove[P <: Phase] = P <:< (Ready | Updated)
 type HasMoved[P <: Phase] = P <:< Moved
 
-type Tick = Option[(Option[Char], VMState[Ready])]
+enum Tick:
+  case Halt(code: ExitCode, last: VMState[?])
+  case Output(c: Char, state: VMState[Ready])
+  case Input(f: Char => VMState[Ready])
+  case Continue(state: VMState[Ready])
 
-case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory, input: List[Char] = Nil):
+  def needsInput = this match
+    case _: Input => true
+    case _ => false
+
+enum ExitCode:
+  case Success, EmptyStack
+
+case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory):
   import Opcode.*
 
   private def unsafeSetReady: VMState[Ready] = this.asInstanceOf[VMState[Ready]]
+  def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
+
   def updateAgain(f: VMState[Ready] => VMState[Updated])(using P =:= Updated): VMState[Updated] =
     f(this.unsafeSetReady)
 
-  def noOutput(using HasMoved[P]): Tick = Some(None -> this.unsafeSetReady)
+  def noOutput(using HasMoved[P]): Tick =
+    Tick.Continue(this.ready)
+
   def output(w: Word)(using HasMoved[P]): Tick =
-    Some(Some(deref(w).asChar) -> this.unsafeSetReady)
+    Tick.Output(deref(w).asChar, this.ready)
+
+  def input(using IsReady[P]): Tick = Tick.Input: c =>
+    this.store(a.reg, c.toLit).progress.ready
+
+  def halt: Tick = Tick.Halt(
+    code = ExitCode.Success,
+    last = this
+  )
 
   def op: Opcode = memory(pc).op
   def a: Word = memory(pc.inc1)
@@ -97,13 +120,16 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def read(a: Adr): Word = memory(a)
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
 
-  def step(using IsReady[P]): Tick = op match
-    case HALT => None
+  def tick(using IsReady[P]): Tick = op match
+    case HALT => this.halt
     case SET => store(a.reg, b.value).progress.noOutput
     case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
     case POP => this.pop match
       case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
-      case None => ???
+      case None => Tick.Halt(
+        code = ExitCode.EmptyStack,
+        last = this
+      )
     case EQ =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
       store(a.reg, x).progress.noOutput
@@ -128,15 +154,9 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case CALL => this
       .push(nextInstruction)
       .jump(a.address).noOutput
-    case RET => this.pop.flatMap:
-      case (w, s) => s.jump(w.address).noOutput
+    case RET => this.pop match
+      case Some((w, s)) => s.jump(w.address).noOutput
+      case None         => this.halt
     case OUT => this.progress.output(a)
-    case IN =>
-      input match
-        case c :: cs =>
-          print(c)
-          this.store(a.reg, c.toLit).copy(input = cs).progress.noOutput
-        case Nil =>
-          val nextLine = io.StdIn.readLine("input: ") + "\n"
-          this.copy[Ready](input = nextLine.toList).step
+    case IN => this.input
     case NOOP => this.progress.noOutput
