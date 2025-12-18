@@ -63,10 +63,6 @@ enum Tick:
   case Input(f: Char => VMState[Ready])
   case Continue(state: VMState[Ready])
 
-  def needsInput = this match
-    case _: Input => true
-    case _ => false
-
 enum ExitCode:
   case Success, EmptyStack
 
