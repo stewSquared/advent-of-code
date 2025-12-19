@@ -44,6 +44,15 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - added an algebraic data type for VM Ticks
 - wired together an emulator layer for easier interaction with state
 
+### 2025-12-18 -- Part 5 -- ???
+
+- added the ability to undo commands
+- added a command history
+- add the ability to replay a history
+- unlocked ime travel
+- added ability to set/get register
+- tried teleporting with a different register value
+
 ## Wishlist
 
 - [X] Interface for entering input into running VM
@@ -52,4 +61,12 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - [?] use a state monad and transformer?
 - [X] ADT Algebraic data type for VM Ticks
 - [/] Emulate at higher level so we can explore/diff/inject VM states
+- [/] ability to rewind state
+- [X] ability to replay commands
+- [X] ability to set the 8th register
+- [ ] log running bytecode and PC locations between two states
+- [ ] disassemble bytecode into something readable => reverse engineering
+- [ ] functions indpendent from repl command for worksheet
+- [ ] ability to inspect state // or play with worksheet
+- [ ] diff two states?
 - [/] nice error types?
