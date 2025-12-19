@@ -28,7 +28,7 @@ object Word:
     def asChar: Char = w.toChar
     def fitsU15: Boolean = (w & 0x8000) != 0x8000
     def op: Opcode = Opcode.fromOrdinal(w)
-    def hex: String = s"${w.toHexString}%04"
+    def hex: String = f"0x${w}%04X"
 
 object U15:
   val MaxValue: U15 = 0x7FFF
@@ -62,6 +62,15 @@ object Reg:
   def fromInt(n: Int): Reg =
     require(0x8000 <= n && n <= 0x8007)
     n
+
+  val R1: Reg = 0x8000
+  val R2: Reg = 0x8001
+  val R3: Reg = 0x8002
+  val R4: Reg = 0x8003
+  val R5: Reg = 0x8004
+  val R6: Reg = 0x8005
+  val R7: Reg = 0x8006
+  val R8: Reg = 0x8007
 
 extension (r: Reg)
   def toIndex(using DummyImplicit): Int = r & 0x7FFF
