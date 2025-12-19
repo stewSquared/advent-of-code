@@ -28,7 +28,7 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - Implemented all Opcodes except IN
 - Loaded binary memory and ran a welcome message
 
-### 2025-12-16 -- Part 3 -- Exploring the text adventure
+### 2025-12-16 -- Part 3 -- Entering the Text Adventure
 
 - passed the power on self test
 - completed IN opcode
@@ -36,9 +36,11 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - solved a maze in a text adventure
 - FSM for state transition
 
-### 2025-12-17 -- Part 4 -- Exploring the text adventure
+### 2025-12-17 -- Part 4 -- Separating VM state from execution
 
 - finished the coin/math puzzle in the text adventure
+- reached the "end" of the tex adventure
+- learned that we need to hack the game
 - added an algebraic data type for VM Ticks
 - wired together an emulator layer for easier interaction with state
 
