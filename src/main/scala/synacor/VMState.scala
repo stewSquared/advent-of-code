@@ -60,8 +60,13 @@ type HasMoved[P <: Phase] = P <:< Moved
 enum Tick:
   case Halt(code: ExitCode, last: VMState[?])
   case Output(c: Char, state: VMState[Ready])
-  case Input(f: Char => VMState[Ready])
+  case Input(f: Char => VMState[Ready], state: VMState[Ready]) // TODO include VMState?
   case Continue(state: VMState[Ready])
+
+  def isBlocked = this match
+    case _: (Halt | Input) => true
+    case _: (Output | Continue) => false
+
 
 enum ExitCode:
   case Success, EmptyStack
@@ -81,8 +86,10 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def output(w: Word)(using HasMoved[P]): Tick =
     Tick.Output(deref(w).asChar, this.ready)
 
-  def input(using IsReady[P]): Tick = Tick.Input: c =>
-    this.store(a.reg, c.toLit).progress.ready
+  def input(using ev: IsReady[P]): Tick = Tick.Input(
+    c => this.store(a.reg, c.toLit).progress.ready,
+    this.unsafeSetReady // TODO remove unsafe
+  )
 
   def halt: Tick = Tick.Halt(
     code = ExitCode.Success,
