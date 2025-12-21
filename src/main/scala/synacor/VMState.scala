@@ -11,15 +11,15 @@ case class Registers(underlying: IArray[U15]):
 
 object Registers:
   def apply(
-    r0: U15,
     r1: U15,
     r2: U15,
     r3: U15,
     r4: U15,
     r5: U15,
     r6: U15,
-    r7: U15
-  ): Registers = Registers.apply(IArray(r0, r1, r2, r3, r4, r5, r6, r7))
+    r7: U15,
+    r8: U15
+  ): Registers = Registers.apply(IArray(r1, r2, r3, r4, r5, r6, r7, r8))
   def init: Registers =
     Registers.apply(IArray.fill(8)(Word.fromInt(0).u15))
 
