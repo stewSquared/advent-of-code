@@ -21,7 +21,7 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
     def loop(tick: Tick, chars: List[Char], ops: Queue[String] = Queue.empty): (Tick, Queue[String]) = tick match
       case Tick.Continue(state) =>
         if oplogEnabled then
-          loop(state.tick, chars, ops.enqueue(state.show))
+          loop(state.tick, chars, ops.enqueue(state.showInst))
         else
           loop(state.tick, chars)
       case Tick.Input(f) => chars match
@@ -37,12 +37,12 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
     def loop(tick: Tick, chars: Queue[Char], ops: Queue[String] = Queue.empty): (Tick, String, Queue[String]) = tick match
       case Tick.Continue(state) =>
         if oplogEnabled then
-          loop(state.tick, chars, ops.enqueue(state.show))
+          loop(state.tick, chars, ops.enqueue(state.showInst))
         else
           loop(state.tick, chars)
       case Tick.Output(c, state) =>
         if oplogEnabled then
-          loop(state.tick, chars.enqueue(c), ops.enqueue(state.show))
+          loop(state.tick, chars.enqueue(c), ops.enqueue(state.showInst))
         else
           loop(state.tick, chars.enqueue(c))
       case _ => (tick, chars.mkString, ops)

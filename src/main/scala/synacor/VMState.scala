@@ -20,26 +20,26 @@ enum Opcode:
     case PUSH | POP | JMP | CALL | OUT | IN => 1
     case _ => 0
 
-case class Registers(underlying: IArray[Word]):
+case class Registers(underlying: IArray[U15]):
   require(underlying.sizeIs == 8)
-  def apply(r: Reg): Word = underlying(r.toIndex)
+  def apply(r: Reg): U15 = underlying(r.toIndex)
 
-  def updated(r: Reg, w: Word): Registers =
-    Registers(underlying.updated(r.toIndex, w))
+  def updated(r: Reg, u15: U15): Registers =
+    Registers(underlying.updated(r.toIndex, u15))
 
 object Registers:
   def apply(
-    r0: Word,
-    r1: Word,
-    r2: Word,
-    r3: Word,
-    r4: Word,
-    r5: Word,
-    r6: Word,
-    r7: Word
+    r0: U15,
+    r1: U15,
+    r2: U15,
+    r3: U15,
+    r4: U15,
+    r5: U15,
+    r6: U15,
+    r7: U15
   ): Registers = Registers.apply(IArray(r0, r1, r2, r3, r4, r5, r6, r7))
   def init: Registers =
-    Registers.apply(IArray.fill(8)(Word.fromInt(0)))
+    Registers.apply(IArray.fill(8)(Word.fromInt(0).u15))
 
 type Stack = List[Word]
 // type Memory = Map[Adr, Word]
@@ -72,6 +72,7 @@ enum ExitCode:
 
 case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory):
   import Opcode.*
+  private given Registers = this.registers
 
   private def unsafeSetReady: VMState[Ready] = this.asInstanceOf[VMState[Ready]]
   def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
@@ -82,18 +83,26 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def noOutput(using HasMoved[P]): Tick =
     Tick.Continue(this.ready)
 
-  def output(w: Word)(using HasMoved[P]): Tick =
-    Tick.Output(deref(w).asChar, this.ready)
+  def output(n: Lit)(using HasMoved[P]): Tick =
+    Tick.Output(n.asChar, this.ready)
 
   def input(using ev: IsReady[P]): Tick = Tick.Input:
-    ch => this.store(a.toReg, ch.toLit).progress.ready
+    ch => this.store(aReg, ch.toLit).progress.ready
 
   def halt: Tick = Tick.Halt(code = ExitCode.Success)
 
   def op: Opcode = memory(pc).op
-  def a: Arg = Arg.fromWord(memory(pc.inc1))
-  def b: Arg = Arg.fromWord(memory(pc.inc2))
-  def c: Arg = Arg.fromWord(memory(pc.inc3))
+  def aArg[A <: U15 : Cast]: Arg[A] = Arg.fromWord[A](memory(pc.inc1))
+  def bArg[A <: U15 : Cast]: Arg[A] = Arg.fromWord[A](memory(pc.inc2))
+  def cArg[A <: U15 : Cast]: Arg[A] = Arg.fromWord[A](memory(pc.inc3))
+
+  def aReg: Reg = memory(pc.inc1).reg
+  def bReg: Reg = memory(pc.inc2).reg
+  def cReg: Reg = memory(pc.inc3).reg
+
+  def a[A <: U15 : Cast]: A = aArg.value
+  def b[A <: U15 : Cast]: A = bArg.value
+  def c[A <: U15 : Cast]: A = cArg.value
 
   def nextInstruction: Adr = op.numParams match
     case 0 => pc.inc1
@@ -106,86 +115,66 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(registers = registers.updated(r, v))
 
-  extension (a: Arg)
-    def value: Lit = a match
-      case r: Arg.RegRef => r.deref(registers).lit
-      case Arg.Const(v) => v.lit
-
-    def address: Adr = a match
-      case Arg.RegRef(reg) => registers(reg).adr
-      case Arg.Const(v) => v.adr
-
-  def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
+  def push(w: U15)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
   def pop(using IsReady[P]): Option[(Word, VMState[Updated])] =
     stack.headOption.map(_ -> this.copy(stack = stack.tail))
 
   def read(a: Adr): Word = memory(a)
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
 
-  def showArg(regOrLit: Word): String =
-    if regOrLit.fitsU15 then regOrLit.lit.hex // 0x0002
-    else s"${regOrLit.reg.name}(${deref(regOrLit).lit.hex})" // R2(0x0002)
-
-  def showChar(regOrLit: Word): String =
-    if regOrLit.fitsU15 then regOrLit.asChar.toString // 0x0002
-    else s"${regOrLit.reg.name}(${deref(regOrLit).asChar.toString})" // R2(0x0002)
-
-  def showAdr(regOrAdr: Word): String =
-    if regOrAdr.fitsU15 then s"@${regOrAdr.adr.hex}" // @0x0002
-    else s"${regOrAdr.reg.name}(@${deref(regOrAdr).adr.hex})" // R2(0x0002)
-
-  def showArgs(args: String*): String =
-    s"@${pc.hex}: $op ${args.mkString(" ")}"
-
-  def show(using IsReady[P]): String = op match // todo rename show instruction
-    case PUSH => showArgs(showArg(a))
-    case POP | IN => showArgs(a.reg.name)
-    case SET => showArgs(a.reg.name, showArg(b))
-    case JMP | CALL => showArgs(showAdr(a))
-    case JT | JF => showArgs(showArg(a), showAdr(b))
-    case GT | EQ | ADD | MULT | MOD | AND | OR =>
-      showArgs(a.reg.name, showArg(b), showArg(c))
-    case NOT | RMEM => showArgs(a.reg.name, showArg(b))
-    case WMEM => showArgs(showAdr(a), showArg(b))
-    case OUT => showArgs(showChar(a))
-    case NOOP | RET | HALT => s"@${pc.hex}: $op"
+  def showInst(using IsReady[P]): String =
+    val args = op match
+      case PUSH       => s"${aArg[Lit].show}"
+      case POP | IN   => s"${aReg.name}"
+      case SET        => s"${aReg.name} ${aArg[Lit].show}"
+      case JMP | CALL => s"${aArg[Adr].show}"
+      case JT | JF    => s"${aArg[Lit].show} ${bArg[Adr].show}"
+      case NOT | RMEM => s"${aReg.name} ${bArg[Lit].show}"
+      case WMEM       => s"${aArg[Adr].show} ${bArg[Lit].show}"
+      case OUT        => aArg[Lit] match
+        case Arg.RegRef(reg) => s"${reg.name}(${cast[Char](registers(reg))})"
+        case Arg.Const(v) => v.asChar
+      case GT | EQ | ADD | MULT | MOD | AND | OR =>
+        s"${aReg.name} ${bArg[Lit].show} ${cArg[Lit].show}"
+      case NOOP | RET | HALT => ""
+    s"@${pc.hex}: $op $args"
 
   def tick(using IsReady[P]): Tick = op match
     case HALT => this.halt
-    case SET => store(a.toReg, b.value).progress.noOutput
-    case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
+    case SET => store(aReg, b).progress.noOutput
+    case PUSH => push(a[U15]).progress.noOutput // TODO: can we dereference a?
     case POP => this.pop match
       case Some(word -> state) => state.updateAgain: state =>
-          state.store(a.toReg, Arg.fromWord(word).value)
+          state.store(aReg, Arg.fromWord(word).value)
         .progress.noOutput
       case None => Tick.Halt(ExitCode.EmptyStack)
     case EQ =>
-      val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
-      store(a.toReg, x).progress.noOutput
+      val x: Lit = if b[Lit] == c[Lit] then 1.toLit else 0.toLit // boolean tolit?
+      store(aReg, x).progress.noOutput
     case GT =>
-      val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
-      store(a.toReg, x).progress.noOutput
-    case JMP => jump(a.address).noOutput
+      val x: Lit = if b[Lit] > c[Lit] then 1.toLit else 0.toLit
+      store(aReg, x).progress.noOutput
+    case JMP => jump(a).noOutput
     case JT =>
-      if a.value != 0.toLit then this.jump(b.address).noOutput
+      if a[Lit] != 0.toLit then this.jump(b).noOutput
       else this.progress.noOutput
     case JF =>
-      if a.value == 0.toLit then this.jump(b.address).noOutput
+      if a[Lit] == 0.toLit then this.jump(b).noOutput
       else this.progress.noOutput
-    case ADD => this.store(a.toReg, b.value + c.value).progress.noOutput
-    case MULT => this.store(a.toReg, b.value * c.value).progress.noOutput
-    case MOD => this.store(a.toReg, b.value % c.value).progress.noOutput
-    case AND => this.store(a.toReg, b.value & c.value).progress.noOutput
-    case OR => this.store(a.toReg, b.value | c.value).progress.noOutput
-    case NOT => this.store(a.toReg, ~(b.value)).progress.noOutput
-    case RMEM => this.store(a.toReg, read(b.address).lit).progress.noOutput
-    case WMEM => this.write(a.address, b.value).progress.noOutput
+    case ADD => this.store(aReg, b[Lit] + c[Lit]).progress.noOutput
+    case MULT => this.store(aReg, b[Lit] * c[Lit]).progress.noOutput
+    case MOD => this.store(aReg, b[Lit] % c[Lit]).progress.noOutput
+    case AND => this.store(aReg, b[Lit] & c[Lit]).progress.noOutput
+    case OR => this.store(aReg, b[Lit] | c[Lit]).progress.noOutput
+    case NOT => this.store(aReg, ~b[Lit]).progress.noOutput
+    case RMEM => this.store(aReg, read(b).lit).progress.noOutput
+    case WMEM => this.write(a, b).progress.noOutput
     case CALL => this
       .push(nextInstruction)
-      .jump(a.address).noOutput
+      .jump(a).noOutput
     case RET => this.pop match
-      case Some((w, s)) => s.jump(Arg.fromWord(w).address).noOutput
+      case Some((w, s)) => s.jump(Arg.fromWord(w).value).noOutput
       case None         => this.halt
-    case OUT => this.progress.output(a.value)
+    case OUT => this.progress.output(a)
     case IN => this.input
     case NOOP => this.progress.noOutput

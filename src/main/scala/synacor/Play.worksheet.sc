@@ -54,13 +54,24 @@ val startVM = VMState[Ready](
   memory = memory,
 )
 
-startVM.show
-startVM.tick.state.show
+startVM.showInst
+startVM.tick.asInstanceOf[Tick.Continue].state.showInst
+
+startVM.inst
+import synacor.numbers.*
+startVM.copy(pc = Word.fromInt(0x05DC).adr).showInst
+startVM.copy(pc = Word.fromInt(0x05DC).adr).inst
 
 2 + 2
 
 var emu: Emulator = Emulator.init(Tick.Continue(startVM))
 
+
+
+emu.state
+println(emu.progressUntilBlocked.state)
+
+emu.state == emu.progressUntilBlocked.state
 
 // start.step
 

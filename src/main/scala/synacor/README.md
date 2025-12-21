@@ -73,17 +73,21 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - [/] log running bytecode and PC locations between two states
   - [X] turning on/off the printing
   - [?] write to file?
+  - [ ] disassemble bytecode into something readable => reverse engineering
 - [X] PRINT currently running instruction
-- [ ] Count ticks between commands
 - [ ] model the assembly language? - useful for ASM DSL, or parsing
-- [ ] disassemble bytecode into something readable => reverse engineering
+  - interpretation
+  - printing
+  - extraction
+  - injection
+- [ ] Addresses of function of interest
+- [ ] Graph of function calls
+- [ ] Count ticks between commands
 - [ ] functions indpendent from repl command for worksheet
-- [ ] ability to inspect state // or play with worksheet
-- [ ] diff two states?
-- [ ] diff memory when picking up teleporter?
-- [ ] diff memory when moving rooms?
+- [ ] diff memory?
 - [/] nice error types?
 - [?] ASM DSL?
 - [?] Compiler?
 - [?] disassemble to HLL
 - [?] VM State Transition AST / Machine Code Interpreter AST?
+- [?] Create a decompiler
