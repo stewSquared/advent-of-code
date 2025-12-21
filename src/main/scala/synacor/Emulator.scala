@@ -3,34 +3,51 @@ package synacor
 import collection.immutable.Queue
 
 // TODO alternate between in/out types
-case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String], inputHistory: Queue[String]):
+case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String], inputHistory: Queue[String], oplog: Queue[String], oplogEnabled: Boolean):
   def feedMultiple(inputs: List[String]): Emulator =
     inputs.foldLeft(this):
       case (state, input) =>
         state.progressUntilBlocked.feed(input)
 
+  def toggleOplog: Emulator = copy(oplogEnabled = !oplogEnabled)
+
+  def clearOplog: Emulator = copy(oplog = Queue.empty)
+
   def feed(input: String): Emulator =
     assert(input.indexOf('\n') == input.length - 1)
 
-    def loop(tick: Tick, chars: List[Char]): Tick = tick match
-      case Tick.Continue(state) => loop(state.tick, chars)
+    def loop(tick: Tick, chars: List[Char], ops: Queue[String] = Queue.empty): (Tick, Queue[String]) = tick match
+      case Tick.Continue(state) =>
+        if oplogEnabled then
+          loop(state.tick, chars, ops.enqueue(state.show))
+        else
+          loop(state.tick, chars)
       case Tick.Input(f, state) => chars match
         case c::cs => loop(f(c).tick, cs)
         case Nil => throw new Exception("Not enough input.") // dead code
-      case tick => if chars.isEmpty then tick else
+      case tick => if chars.isEmpty then (tick, ops) else
         throw new Exception(s"Input too long.") // dead code
 
-    copy(state = loop(state, input.toList), inputHistory = inputHistory.enqueue(input))
+    val (next, ops) = loop(state, input.toList)
+    copy(state = next, inputHistory = inputHistory.enqueue(input), oplog = oplog.enqueueAll(ops))
 
   def progressUntilBlocked: Emulator =
-    def loop(tick: Tick, chars: Queue[Char]): (String, Tick) = tick match
-      case Tick.Continue(state) => loop(state.tick, chars)
-      case Tick.Output(c, state) => loop(state.tick, chars.enqueue(c))
-      case _ => chars.mkString -> tick
+    def loop(tick: Tick, chars: Queue[Char], ops: Queue[String] = Queue.empty): (Tick, String, Queue[String]) = tick match
+      case Tick.Continue(state) =>
+        if oplogEnabled then
+          loop(state.tick, chars, ops.enqueue(state.show))
+        else
+          loop(state.tick, chars)
+      case Tick.Output(c, state) =>
+        if oplogEnabled then
+          loop(state.tick, chars.enqueue(c), ops.enqueue(state.show))
+        else
+          loop(state.tick, chars.enqueue(c))
+      case _ => (tick, chars.mkString, ops)
 
-    val (out, next) = loop(state, Queue.empty)
+    val (next, out, ops) = loop(state, Queue.empty)
     assert(next.isBlocked)
-    copy(next, state::history, outputQueue.enqueue(out))
+    copy(next, history = state::history, outputQueue = outputQueue.enqueue(out), oplog = oplog.enqueueAll(ops))
 
   def useOutput(f: String => Unit): Emulator =
     val (out, outs) = outputQueue.dequeue
@@ -61,5 +78,4 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
 
 object Emulator:
   def init(start: Tick): Emulator =
-    apply(start, Nil, Queue.empty, Queue.empty)
-
+    apply(start, Nil, Queue.empty, Queue.empty, Queue.empty, false)

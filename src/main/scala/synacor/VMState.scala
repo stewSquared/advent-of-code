@@ -57,16 +57,16 @@ type IsReady[P <: Phase] = P <:< Ready
 type CanMove[P <: Phase] = P <:< (Ready | Updated)
 type HasMoved[P <: Phase] = P <:< Moved
 
-enum Tick:
-  case Halt(code: ExitCode, last: VMState[?])
-  case Output(c: Char, state: VMState[Ready])
-  case Input(f: Char => VMState[Ready], state: VMState[Ready]) // TODO include VMState?
-  case Continue(state: VMState[Ready])
+enum Tick(val state: VMState[Ready]):
+  // Output and Continue.state both refer to state *after* executing the opcode
+  case Halt(code: ExitCode, override val state: VMState[Ready]) extends Tick(state)
+  case Output(c: Char, override val state: VMState[Ready]) extends Tick(state)
+  case Input(f: Char => VMState[Ready], override val state: VMState[Ready]) extends Tick(state)
+  case Continue(override val state: VMState[Ready]) extends Tick(state)
 
   def isBlocked = this match
     case _: (Halt | Input) => true
     case _: (Output | Continue) => false
-
 
 enum ExitCode:
   case Success, EmptyStack
@@ -87,13 +87,13 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     Tick.Output(deref(w).asChar, this.ready)
 
   def input(using ev: IsReady[P]): Tick = Tick.Input(
-    c => this.store(a.reg, c.toLit).progress.ready,
+    ch => this.store(a.reg, ch.toLit).progress.ready,
     this.unsafeSetReady // TODO remove unsafe
   )
 
   def halt: Tick = Tick.Halt(
     code = ExitCode.Success,
-    last = this
+    state = this.unsafeSetReady
   )
 
   def op: Opcode = memory(pc).op
@@ -123,6 +123,34 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def read(a: Adr): Word = memory(a)
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
 
+  def showArg(regOrLit: Word): String =
+    if regOrLit.fitsU15 then regOrLit.lit.hex // 0x0002
+    else s"${regOrLit.reg.name}(${deref(regOrLit).lit.hex})" // R2(0x0002)
+
+  def showChar(regOrLit: Word): String =
+    if regOrLit.fitsU15 then regOrLit.asChar.toString // 0x0002
+    else s"${regOrLit.reg.name}(${deref(regOrLit).asChar.toString})" // R2(0x0002)
+
+  def showAdr(regOrAdr: Word): String =
+    if regOrAdr.fitsU15 then s"@${regOrAdr.adr.hex}" // @0x0002
+    else s"${regOrAdr.reg.name}(@${deref(regOrAdr).adr.hex})" // R2(0x0002)
+
+  def showArgs(args: String*): String =
+    s"@${pc.hex}: $op ${args.mkString(" ")}"
+
+  def show(using IsReady[P]): String = op match // todo rename show instruction
+    case PUSH => showArgs(showArg(a))
+    case POP | IN => showArgs(a.reg.name)
+    case SET => showArgs(a.reg.name, showArg(b))
+    case JMP | CALL => showArgs(showAdr(a))
+    case JT | JF => showArgs(showArg(a), showAdr(b))
+    case GT | EQ | ADD | MULT | MOD | AND | OR =>
+      showArgs(a.reg.name, showArg(b), showArg(c))
+    case NOT | RMEM => showArgs(a.reg.name, showArg(b))
+    case WMEM => showArgs(showAdr(a), showArg(b))
+    case OUT => showArgs(showChar(a))
+    case NOOP | RET | HALT => s"@${pc.hex}: $op"
+
   def tick(using IsReady[P]): Tick = op match
     case HALT => this.halt
     case SET => store(a.reg, b.value).progress.noOutput
@@ -131,7 +159,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
       case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
       case None => Tick.Halt(
         code = ExitCode.EmptyStack,
-        last = this
+        state = this.unsafeSetReady
       )
     case EQ =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?

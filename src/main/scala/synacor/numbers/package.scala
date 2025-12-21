@@ -60,7 +60,7 @@ extension (a: Lit)
 
 object Reg:
   def fromInt(n: Int): Reg =
-    require(0x8000 <= n && n <= 0x8007)
+    require(0x8000 <= n && n <= 0x8007, s"invalid register index: ${n.toHexString}")
     n
 
   val R1: Reg = 0x8000
@@ -74,3 +74,12 @@ object Reg:
 
 extension (r: Reg)
   def toIndex(using DummyImplicit): Int = r & 0x7FFF
+  def name = r match
+    case 0x8000 => "R1"
+    case 0x8001 => "R2"
+    case 0x8002 => "R3"
+    case 0x8003 => "R4"
+    case 0x8004 => "R5"
+    case 0x8005 => "R6"
+    case 0x8006 => "R7"
+    case 0x8007 => "R8"
