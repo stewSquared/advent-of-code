@@ -2,58 +2,45 @@ package synacor
 
 import numbers.*
 
-enum Arg[A <: U15]:
-  case RegRef[A <: U15](reg: Reg) extends Arg[A]
-  case Const[A <: U15](v: A) extends Arg[A]
-
-  def toReg: Reg = this match
-    case RegRef(reg) => reg
-    case Const(v) => v.reg // should fail
-
-  def value(using Registers, Cast[A]): A = this match
-    case ref@RegRef(reg) => Cast[A].cast(ref.deref(summon[Registers]))
-    case Const(v) => v
-
-  def toRegOption: Option[Reg] = this match
-    case RegRef(reg) => Some(reg)
-    case Const(v) => None
-
+sealed trait Arg
 object Arg:
-  extension (regRef: RegRef[?])
-    def deref(registers: Registers): U15 = // TODO: Use Cast
-      registers(regRef.reg)
+  given (using Registers): Show[Arg] with
+    def show(arg: Arg): String = arg match
+      case RegArg(reg) => reg.name
+      case litArg: LitArg => litArg match
+        case LitVal(value) => value.show
+        case ref@LitRef(reg) => s"${reg.name}(${ref.value.show})"
+      case adrArg: AdrArg => adrArg match
+        case AdrVal(value) => value.show
+        case ref@AdrRef(reg) => s"${reg.name}(${ref.value.show})"
 
-  given [A <: U15 : Cast : Show](using Registers): Show[Arg[A]] with
-    override def show(arg: Arg[A]) = arg match
-      case ref@Arg.RegRef(reg) => Show[RegRef[A]].show(ref)
-      case const@Arg.Const(v) => Show[Const[A]].show(const)
+sealed trait LitArg extends Arg:
+  def value(using registers: Registers): Lit = this match
+    case LitVal(value) => value
+    case LitRef(reg) => registers(reg).lit
 
-  given [A <: U15](using Cast[A], Show[A]): Show[Const[A]] with
-    override def show(const: Arg.Const[A]) = Show[A].show(cast(const.v))
+object LitArg:
+  def fromWord(w: Word): LitArg =
+    if w.fitsU15 then LitVal(w.lit)
+    else LitRef(w.reg)
 
-  given [A <: U15](using registers: Registers)(using Cast[A], Show[A]): Show[RegRef[A]] with
-    override def show(regRef: Arg.RegRef[A]): String =
-      val a: A = cast[A](regRef.deref(registers))
-      s"${regRef.reg.name}(${Show[A].show(a)})"
+sealed trait AdrArg extends Arg:
+  def value(using registers: Registers): Adr = this match
+    case AdrVal(value) => value
+    case AdrRef(reg) => registers(reg).adr
 
-  def fromWord[A <: U15 : Cast](w: Word): Arg[A] =
-    if w.fitsU15 then Const(Cast[A].cast(w))
-    else RegRef(w.reg)
+object AdrArg:
+  def fromWord(w: Word): AdrArg =
+    if w.fitsU15 then AdrVal(w.adr)
+    else AdrRef(w.reg)
 
-given Cast[Lit] with
-  override def cast(w: Word): Lit = w.lit
+import synacor.numbers.{Reg, Lit, Adr}
 
-given Cast[Adr] with
-  override def cast(w: Word): Adr = w.adr
+case class RegArg(reg: Reg) extends Arg:
+  def value(using registers: Registers): U15 =
+    registers(reg)
 
-given Cast[U15] with
-  override def cast(w: Word): U15 = w.u15
-
-given Cast[Char] with
-  override def cast(w: Word): Char = w.asChar
-
-given Show[Lit] with
-  def show(a: Lit): String = a.hex
-
-given Show[Adr] with
-  def show(a: Adr): String = s"&${a.hex}"
+case class LitVal(value: Lit) extends LitArg
+case class LitRef(reg: Reg) extends LitArg
+case class AdrVal(value: Adr) extends AdrArg
+case class AdrRef(reg: Reg) extends AdrArg
