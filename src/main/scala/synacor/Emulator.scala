@@ -27,10 +27,9 @@ case class Emulator(
 
     def loop(tick: Tick, chars: List[Char], ops: Queue[Inst] = Queue.empty): (Tick, Queue[Inst]) = tick match
       case Tick.Continue(state) =>
-        if oplogEnabled then
-          loop(state.tick, chars, ops.enqueue(state.inst))
-        else
-          loop(state.tick, chars)
+        val log = if oplogEnabled then ops.enqueue(state.inst) else ops
+        if oplogEnabled then println(state.showInst)
+        loop(state.tick, chars, if oplogEnabled then log else ops)
       case Tick.Input(f) => chars match
         case c::cs => loop(f(c).tick, cs)
         case Nil => throw new Exception("Not enough input.") // dead code
@@ -43,9 +42,11 @@ case class Emulator(
   def progressUntilBlocked: Emulator =
     def loop(tick: Tick, chars: Queue[Char], ops: Queue[Inst] = Queue.empty): (Tick, String, Queue[Inst]) = tick match
       case Tick.Continue(state) =>
+        if oplogEnabled then println(state.showInst)
         val log = if oplogEnabled then ops.enqueue(state.inst) else ops
         loop(state.tick, chars, log)
       case Tick.Output(c, state) =>
+        if oplogEnabled then println(state.showInst)
         val log = if oplogEnabled then ops.enqueue(state.inst) else ops
         loop(state.tick, chars.enqueue(c), log)
       case _ => (tick, chars.mkString, ops)
