@@ -44,14 +44,20 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - added an algebraic data type for VM Ticks
 - wired together an emulator layer for easier interaction with state
 
-### 2025-12-18 -- Part 5 -- ???
+### 2025-12-18 -- Part 5 -- Time Travel
 
 - added the ability to undo commands
 - added a command history
 - add the ability to replay a history
-- unlocked ime travel
+- unlocked time travel
 - added ability to set/get register
 - tried teleporting with a different register value
+
+### 2025-12-18 -- Part 6 -- ???
+
+- added ability to print a VM state's currently running instruction
+- added an oplog to our emulator
+- recorded instructions that run when using the teleporter
 
 ## Wishlist
 
@@ -61,12 +67,23 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - [?] use a state monad and transformer?
 - [X] ADT Algebraic data type for VM Ticks
 - [/] Emulate at higher level so we can explore/diff/inject VM states
-- [/] ability to rewind state
+- [X] ability to rewind state
 - [X] ability to replay commands
 - [X] ability to set the 8th register
-- [ ] log running bytecode and PC locations between two states
+- [/] log running bytecode and PC locations between two states
+  - [X] turning on/off the printing
+  - [?] write to file?
+- [X] PRINT currently running instruction
+- [ ] Count ticks between commands
+- [ ] model the assembly language? - useful for ASM DSL, or parsing
 - [ ] disassemble bytecode into something readable => reverse engineering
 - [ ] functions indpendent from repl command for worksheet
 - [ ] ability to inspect state // or play with worksheet
 - [ ] diff two states?
+- [ ] diff memory when picking up teleporter?
+- [ ] diff memory when moving rooms?
 - [/] nice error types?
+- [?] ASM DSL?
+- [?] Compiler?
+- [?] disassemble to HLL
+- [?] VM State Transition AST / Machine Code Interpreter AST?
