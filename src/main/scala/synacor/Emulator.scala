@@ -5,7 +5,14 @@ import collection.immutable.Queue
 // TODO alternate between in/out types
 // TODO: Maybe progress from VMState to state, rather than tick to tick
 // history should be VMState
-case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String], inputHistory: Queue[String], oplog: Queue[String], oplogEnabled: Boolean):
+case class Emulator(
+  state: Tick,
+  history: List[Tick],
+  outputQueue: Queue[String],
+  inputHistory: Queue[String],
+  oplog: Queue[Inst],
+  oplogEnabled: Boolean
+):
   def feedMultiple(inputs: List[String]): Emulator =
     inputs.foldLeft(this):
       case (state, input) =>
@@ -18,10 +25,10 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
   def feed(input: String): Emulator =
     assert(input.indexOf('\n') == input.length - 1)
 
-    def loop(tick: Tick, chars: List[Char], ops: Queue[String] = Queue.empty): (Tick, Queue[String]) = tick match
+    def loop(tick: Tick, chars: List[Char], ops: Queue[Inst] = Queue.empty): (Tick, Queue[Inst]) = tick match
       case Tick.Continue(state) =>
         if oplogEnabled then
-          loop(state.tick, chars, ops.enqueue(state.showInst))
+          loop(state.tick, chars, ops.enqueue(state.inst))
         else
           loop(state.tick, chars)
       case Tick.Input(f) => chars match
@@ -34,17 +41,13 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
     copy(state = next, inputHistory = inputHistory.enqueue(input), oplog = oplog.enqueueAll(ops))
 
   def progressUntilBlocked: Emulator =
-    def loop(tick: Tick, chars: Queue[Char], ops: Queue[String] = Queue.empty): (Tick, String, Queue[String]) = tick match
+    def loop(tick: Tick, chars: Queue[Char], ops: Queue[Inst] = Queue.empty): (Tick, String, Queue[Inst]) = tick match
       case Tick.Continue(state) =>
-        if oplogEnabled then
-          loop(state.tick, chars, ops.enqueue(state.showInst))
-        else
-          loop(state.tick, chars)
+        val log = if oplogEnabled then ops.enqueue(state.inst) else ops
+        loop(state.tick, chars, log)
       case Tick.Output(c, state) =>
-        if oplogEnabled then
-          loop(state.tick, chars.enqueue(c), ops.enqueue(state.showInst))
-        else
-          loop(state.tick, chars.enqueue(c))
+        val log = if oplogEnabled then ops.enqueue(state.inst) else ops
+        loop(state.tick, chars.enqueue(c), log)
       case _ => (tick, chars.mkString, ops)
 
     val (next, out, ops) = loop(state, Queue.empty)
@@ -52,9 +55,10 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
     copy(next, history = state::history, outputQueue = outputQueue.enqueue(out), oplog = oplog.enqueueAll(ops))
 
   def useOutput(f: String => Unit): Emulator =
-    val (out, outs) = outputQueue.dequeue
-    f(out)
-    copy(outputQueue = outs)
+    outputQueue.dequeueOption.fold(this):
+      case (out, outs) =>
+        f(out)
+        copy(outputQueue = outs)
 
   def undo: Emulator = history match
     case _ :: past :: olderHistory =>

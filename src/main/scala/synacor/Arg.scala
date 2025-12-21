@@ -2,7 +2,14 @@ package synacor
 
 import numbers.*
 
-sealed trait Arg
+sealed trait Arg:
+  override def toString: String = this match
+    case RegArg(reg) => reg.name
+    case LitVal(value) => value.show
+    case LitRef(reg) => reg.name
+    case AdrVal(value) => value.show
+    case AdrRef(reg) => reg.name
+
 object Arg:
   given (using Registers): Show[Arg] with
     def show(arg: Arg): String = arg match
