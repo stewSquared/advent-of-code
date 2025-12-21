@@ -19,6 +19,7 @@ object Word:
     n
 
   extension (w: Word)
+    def u15: U15 = U15.fromInt(w)
     def adr: Adr = Adr.fromInt(w)
     def lit: Lit = Lit.fromInt(w)
     def reg: Reg = Reg.fromInt(w)

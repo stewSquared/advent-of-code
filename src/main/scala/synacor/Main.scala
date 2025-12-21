@@ -74,8 +74,8 @@ import numbers.*
         case 8 =>
           import numbers.*
           // val lit = n.toInt.toLit
-          val word = Word.fromInt(n.toInt)
-          emu = emu.setRegisters(_.updated(Reg.R8, word))
+          val u15 = Word.fromInt(n.toInt).u15
+          emu = emu.setRegisters(_.updated(Reg.R8, u15))
           // emu = emu.feed("look\n")
         case _ => ???
       case command =>

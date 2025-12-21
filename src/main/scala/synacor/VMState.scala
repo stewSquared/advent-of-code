@@ -91,9 +91,9 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def halt: Tick = Tick.Halt(code = ExitCode.Success)
 
   def op: Opcode = memory(pc).op
-  def a: Word = memory(pc.inc1)
-  def b: Word = memory(pc.inc2)
-  def c: Word = memory(pc.inc3)
+  def a: Arg = Arg.fromWord(memory(pc.inc1))
+  def b: Arg = Arg.fromWord(memory(pc.inc2))
+  def c: Arg = Arg.fromWord(memory(pc.inc3))
 
   def nextInstruction: Adr = op.numParams match
     case 0 => pc.inc1
@@ -105,10 +105,15 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def jump(a: Adr)(using CanMove[P]): VMState[Moved] = this.copy(pc = a)
 
   def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(registers = registers.updated(r, v))
-  def deref(w: Word): Word = if w.fitsU15 then w else registers(w.reg)
 
-  extension (w: Word) def value: Lit = deref(w).lit
-  extension (w: Word) def address: Adr = deref(w).adr
+  extension (a: Arg)
+    def value: Lit = a match
+      case r: Arg.RegRef => r.deref(registers).lit
+      case Arg.Const(v) => v.lit
+
+    def address: Adr = a match
+      case Arg.RegRef(reg) => registers(reg).adr
+      case Arg.Const(v) => v.adr
 
   def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
   def pop(using IsReady[P]): Option[(Word, VMState[Updated])] =
@@ -147,7 +152,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   def tick(using IsReady[P]): Tick = op match
     case HALT => this.halt
-    case SET => store(a.reg, b.value).progress.noOutput
+    case SET => store(a.toReg, b.value).progress.noOutput
     case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
     case POP => this.pop match
       case Some(word -> state) => state.updateAgain: state =>
@@ -156,10 +161,10 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
       case None => Tick.Halt(ExitCode.EmptyStack)
     case EQ =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
-      store(a.reg, x).progress.noOutput
+      store(a.toReg, x).progress.noOutput
     case GT =>
       val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
-      store(a.reg, x).progress.noOutput
+      store(a.toReg, x).progress.noOutput
     case JMP => jump(a.address).noOutput
     case JT =>
       if a.value != 0.toLit then this.jump(b.address).noOutput
@@ -167,20 +172,20 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case JF =>
       if a.value == 0.toLit then this.jump(b.address).noOutput
       else this.progress.noOutput
-    case ADD => this.store(a.reg, b.value + c.value).progress.noOutput
-    case MULT => this.store(a.reg, b.value * c.value).progress.noOutput
-    case MOD => this.store(a.reg, b.value % c.value).progress.noOutput
-    case AND => this.store(a.reg, b.value & c.value).progress.noOutput
-    case OR => this.store(a.reg, b.value | c.value).progress.noOutput
-    case NOT => this.store(a.reg, ~(b.value)).progress.noOutput
-    case RMEM => this.store(a.reg, read(b.address).lit).progress.noOutput
+    case ADD => this.store(a.toReg, b.value + c.value).progress.noOutput
+    case MULT => this.store(a.toReg, b.value * c.value).progress.noOutput
+    case MOD => this.store(a.toReg, b.value % c.value).progress.noOutput
+    case AND => this.store(a.toReg, b.value & c.value).progress.noOutput
+    case OR => this.store(a.toReg, b.value | c.value).progress.noOutput
+    case NOT => this.store(a.toReg, ~(b.value)).progress.noOutput
+    case RMEM => this.store(a.toReg, read(b.address).lit).progress.noOutput
     case WMEM => this.write(a.address, b.value).progress.noOutput
     case CALL => this
       .push(nextInstruction)
       .jump(a.address).noOutput
     case RET => this.pop match
-      case Some((w, s)) => s.jump(w.address).noOutput
+      case Some((w, s)) => s.jump(Arg.fromWord(w).address).noOutput
       case None         => this.halt
-    case OUT => this.progress.output(a)
+    case OUT => this.progress.output(a.value)
     case IN => this.input
     case NOOP => this.progress.noOutput
