@@ -57,12 +57,11 @@ type IsReady[P <: Phase] = P <:< Ready
 type CanMove[P <: Phase] = P <:< (Ready | Updated)
 type HasMoved[P <: Phase] = P <:< Moved
 
-enum Tick(val state: VMState[Ready]):
-  // Output and Continue.state both refer to state *after* executing the opcode
-  case Halt(code: ExitCode, override val state: VMState[Ready]) extends Tick(state)
-  case Output(c: Char, override val state: VMState[Ready]) extends Tick(state)
-  case Input(f: Char => VMState[Ready], override val state: VMState[Ready]) extends Tick(state)
-  case Continue(override val state: VMState[Ready]) extends Tick(state)
+enum Tick:
+  case Halt(code: ExitCode)
+  case Output(c: Char, state: VMState[Ready])
+  case Input(f: Char => VMState[Ready])
+  case Continue(state: VMState[Ready])
 
   def isBlocked = this match
     case _: (Halt | Input) => true
@@ -86,15 +85,10 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def output(w: Word)(using HasMoved[P]): Tick =
     Tick.Output(deref(w).asChar, this.ready)
 
-  def input(using ev: IsReady[P]): Tick = Tick.Input(
-    ch => this.store(a.reg, ch.toLit).progress.ready,
-    this.unsafeSetReady // TODO remove unsafe
-  )
+  def input(using ev: IsReady[P]): Tick = Tick.Input:
+    ch => this.store(a.toReg, ch.toLit).progress.ready
 
-  def halt: Tick = Tick.Halt(
-    code = ExitCode.Success,
-    state = this.unsafeSetReady
-  )
+  def halt: Tick = Tick.Halt(code = ExitCode.Success)
 
   def op: Opcode = memory(pc).op
   def a: Word = memory(pc.inc1)
@@ -156,11 +150,10 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case SET => store(a.reg, b.value).progress.noOutput
     case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
     case POP => this.pop match
-      case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
-      case None => Tick.Halt(
-        code = ExitCode.EmptyStack,
-        state = this.unsafeSetReady
-      )
+      case Some(word -> state) => state.updateAgain: state =>
+          state.store(a.toReg, Arg.fromWord(word).value)
+        .progress.noOutput
+      case None => Tick.Halt(ExitCode.EmptyStack)
     case EQ =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
       store(a.reg, x).progress.noOutput

@@ -3,6 +3,8 @@ package synacor
 import collection.immutable.Queue
 
 // TODO alternate between in/out types
+// TODO: Maybe progress from VMState to state, rather than tick to tick
+// history should be VMState
 case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String], inputHistory: Queue[String], oplog: Queue[String], oplogEnabled: Boolean):
   def feedMultiple(inputs: List[String]): Emulator =
     inputs.foldLeft(this):
@@ -22,7 +24,7 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
           loop(state.tick, chars, ops.enqueue(state.show))
         else
           loop(state.tick, chars)
-      case Tick.Input(f, state) => chars match
+      case Tick.Input(f) => chars match
         case c::cs => loop(f(c).tick, cs)
         case Nil => throw new Exception("Not enough input.") // dead code
       case tick => if chars.isEmpty then (tick, ops) else
@@ -62,7 +64,9 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
 
   def setRegisters(f: Registers => Registers): Emulator = state match
     case tick: Tick.Input =>
-      val newTick = tick.copy(state = tick.state.copy(registers = f(tick.state.registers)))
+      val setRegisters: VMState[Ready] => VMState[Ready] = vm =>
+        vm.copy(registers = f(vm.registers))
+      val newTick = Tick.Input(tick.f andThen setRegisters)
       this.copy(state = newTick)
     case tick: Tick.Continue =>
       val newTick = tick.copy(state = tick.state.copy(registers = f(tick.state.registers)))
@@ -72,8 +76,8 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
       this.copy(state = newTick)
     case _ => ???
 
-  def getRegister(reg: numbers.Reg): numbers.Word = state match
-    case tick: Tick.Input => tick.state.registers(reg)
+  def getRegister(reg: numbers.Reg): numbers.U15 = state match
+    case tick: Tick.Input => tick.f(' ').registers(reg) // TODO is hack
     case _ => ???
 
 object Emulator:
