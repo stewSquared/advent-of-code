@@ -1,6 +1,36 @@
 import synacor.*
 import synacor.numbers.*
 
+// @0x0860: POP R3
+// @0x0862: POP R2
+// @0x0864: RET
+// @0x0602: OUT R1(e)
+// @0x0604: POP R2
+// @0x0606: RET
+// @0x05DC: ADD R2 R2(0x0010) 0x0001
+// @0x05E0: JT R2(0x0011) @0x05C8
+// @0x05C8: ADD R4 0x0001 R2(0x0011)
+// @0x05CC: GT R1 R4(0x0012) R5(0x001A)
+// @0x05D0: JT R1(0x0000) @0x05E3
+// @0x05D3: ADD R4 R4(0x0012) R7(0x6B3F)
+// @0x05D7: RMEM R1 R4(0x6B51)
+// @0x05DA: CALL R6(@0x05FB)
+// @0x05FB: PUSH R2(0x0011)
+// @0x05FD: SET R2 R3(0x6374)
+// @0x0600: CALL @0x084D
+// @0x084D: PUSH R2(0x6374)
+// @0x084F: PUSH R3(0x6374)
+// @0x0851: AND R3 R1(0x6307) R2(0x6374)
+// @0x0855: NOT R3 R3(0x6304)
+// @0x0858: OR R1 R1(0x6307) R2(0x6374)
+// @0x085C: AND R1 R1(0x6377) R3(0x1CFB)
+// @0x0860: POP R3
+// @0x0862: POP R2
+// @0x0864: RET
+// @0x0602: OUT R1(s)
+// @0x0604: POP R2
+// @0x0606: RET
+
 def resource = Thread.currentThread()
   .getContextClassLoader
   .getResourceAsStream("synacor/challenge.bin")
@@ -15,15 +45,22 @@ val memory = util.Using(resource): is =>
     a(i / 2) = Word.fromBytes(bytes(i), bytes(i + 1))
 
   Memory(a.toVector)
+.get
 
-memory.get
-
-val start = VMState(
+val startVM = VMState[Ready](
   pc = Adr.fromInt(0),
   registers = Registers.init,
   stack = Nil,
-  memory.get
+  memory = memory,
 )
+
+startVM.show
+startVM.tick.state.show
+
+2 + 2
+
+var emu: Emulator = Emulator.init(Tick.Continue(startVM))
+
 
 // start.step
 

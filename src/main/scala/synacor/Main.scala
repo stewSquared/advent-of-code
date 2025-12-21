@@ -57,6 +57,16 @@ import numbers.*
       case "/halt" => ???
       case "/undo" | "/oops" => emu = emu.undo
       case "/inputlog" => println(emu.inputHistory.map(_.strip).mkString("List(\"","\", \"", "\")"))
+      case "/toggle oplog" =>
+        emu = emu.toggleOplog
+        typeln(s"oplog enabled: ${emu.oplogEnabled}")
+      case "/show oplog" =>
+        emu.oplog.foreach(println)
+      case "/clear oplog" => emu = emu.clearOplog
+      case "/size oplog" =>
+        typeln(s"${emu.oplog.size} instructions ran")
+      case "/hash oplog" =>
+        typeln(s"${emu.oplog.hashCode()}")
       case s"/get R8" =>
         val word = emu.getRegister(numbers.Reg.R8)
         typeln(s"Register 8 value is: ${word.hex}")
