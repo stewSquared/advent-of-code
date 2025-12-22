@@ -58,7 +58,7 @@ def fill(startNode: String): Map[String, Int] =
   import collection.mutable.{PriorityQueue, Map}
   // var visited = startCosts.keys
   val cost = Map[String, Int](bigAdj(startNode).toSeq*)
-  val toVisit = PriorityQueue.empty[String](Ordering.by(cost)).reverse
+  val toVisit = PriorityQueue.empty[String](using Ordering.by(cost)).reverse
   toVisit.enqueue(cost.keys.toSeq*)
   var visiting = toVisit.dequeue()
 

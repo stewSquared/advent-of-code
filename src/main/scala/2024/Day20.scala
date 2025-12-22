@@ -38,7 +38,7 @@ import aoc.{Area, Point, Dir}
 
     val start = State(startPos, Cheat.Cheated(0, startPos))
     val cost = Map[State, Int](start -> 0)
-    val queue = PriorityQueue.empty[State](Ordering.by(cost)).reverse
+    val queue = PriorityQueue.empty[State](using Ordering.by(cost)).reverse
 
     var visiting = start
 
@@ -55,7 +55,7 @@ import aoc.{Area, Point, Dir}
 
     val start = State(startPos, Cheat.CanCheat)
     val cost = Map[State, Int](start -> 0)
-    val queue = PriorityQueue.empty[State](Ordering.by(cost)).reverse
+    val queue = PriorityQueue.empty[State](using Ordering.by(cost)).reverse
 
     var visiting = start
     // val cheats = collection.mutable.Set.empty[(State, Int)]

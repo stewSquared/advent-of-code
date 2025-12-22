@@ -46,24 +46,6 @@ package `2024`
       else Set.empty[Point]
     search(pos)
 
-  def farSideBoxes2(pos: Point, dir: Dir, boxes: Set[Point]): Point =
-    assert(dir.isHorizontal)
-    val start = if dir == Dir.E then pos.move(Dir.W) else pos
-    Iterator
-      .iterate(start)(_.move(dir, 2))
-      .drop(1)
-      .dropWhile(boxes)
-      .next
-
-  def horizontalBoxes(pos: Point, dir: Dir, boxes: Set[Point]): Set[Point] =
-    assert(dir.isHorizontal)
-    val start = if dir == Dir.E then pos.move(Dir.W) else pos
-    Iterator
-      .iterate(start)(_.w.w)
-      .drop(1)
-      .takeWhile(boxes)
-      .toSet
-
   val states = movements.zipWithIndex.scanLeft((startPos, startBoxes)):
     case ((pos, boxes), (dir, i)) =>
       assert(!(boxes(pos) || walls(pos)))
