@@ -49,6 +49,7 @@ import numbers.*
   emu = emu.feedMultiple(shortcut.map(_ + '\n'))
   emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
   emu = emu.feed("look\n")
+  // emu = emu.toggleOplog
 
   while true do
     emu = emu.progressUntilBlocked
@@ -61,7 +62,7 @@ import numbers.*
         emu = emu.toggleOplog
         typeln(s"oplog enabled: ${emu.oplogEnabled}")
       case "/oplog show" =>
-        emu.oplog.foreach(println)
+        emu.oplog.map(_.swap).foreach(println)
       case "/oplog clear" => emu = emu.clearOplog
         typeln("cleared oplog")
       case "/oplog size" =>
