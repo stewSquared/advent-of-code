@@ -59,6 +59,15 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - added an oplog to our emulator
 - recorded instructions that run when using the teleporter
 
+### 2025-12-23 -- Part 7 -- Bypassing the confirmation mechanism
+
+- added proper instruction modeling
+- added method for extracting functions
+- found ackerman function being called
+- bypassed ackerman
+- found new area!
+- found a journal
+
 ## Wishlist
 
 - [X] Interface for entering input into running VM
@@ -74,7 +83,7 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
   - [X] turning on/off the printing
   - [?] write to file?
 - [X] PRINT currently running instruction
-- [ ] Count ticks between commands
+- [X] Count ticks between commands
 - [ ] model the assembly language? - useful for ASM DSL, or parsing
 - [ ] disassemble bytecode into something readable => reverse engineering
 - [ ] functions indpendent from repl command for worksheet
