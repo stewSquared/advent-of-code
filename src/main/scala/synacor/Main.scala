@@ -67,17 +67,15 @@ import numbers.*
         typeln(s"${emu.oplog.size} instructions ran")
       case "/hash oplog" =>
         typeln(s"${emu.oplog.hashCode()}")
-      case s"/get R8" =>
-        val word = emu.getRegister(numbers.Reg.R8)
-        typeln(s"Register 8 value is: ${word.hex}")
-      case s"/set R${i} $n" => i.toInt match
-        case 8 =>
-          import numbers.*
-          // val lit = n.toInt.toLit
-          val u15 = U15.fromInt(n.toInt)
-          emu = emu.setRegister(Reg.R8, u15)
-          // emu = emu.feed("look\n")
-        case _ => ???
+      case s"/get R${i}" =>
+        val r = numbers.Reg.fromIndex(i.toInt)
+        val word = emu.getRegister(r)
+        typeln(s"Register $r value is: ${word.hex}")
+      case s"/set R${i} $n" =>
+        val r = numbers.Reg.fromIndex(i.toInt)
+        val v = numbers.U15.fromInt(n.toInt)
+        emu = emu.setRegister(r, v)
+        typeln(s"Set Register $r to value: ${v.hex}")
       case command =>
         emu = emu.feed(s"${command}\n")
 

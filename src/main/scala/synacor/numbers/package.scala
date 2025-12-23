@@ -60,8 +60,12 @@ extension (a: Lit)
 
 object Reg:
   def fromInt(n: Int): Reg =
-    require(0x8000 <= n && n <= 0x8007, s"invalid register index: ${n.toHexString}")
+    require(0x8000 <= n && n <= 0x8007, s"invalid register value: ${n.toHexString}")
     n
+
+  def fromIndex(i: Int): Reg =
+    require(1 <= i && i <= 8, s"invalid register index: ${i}")
+    (i - 1) | 0x8000
 
   val R1: Reg = 0x8000
   val R2: Reg = 0x8001
