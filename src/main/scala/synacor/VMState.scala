@@ -54,6 +54,7 @@ class Updated extends Phase
 class Moved extends Phase
 
 type IsReady[P <: Phase] = P <:< Ready
+type IsUpdated[P <: Phase] = P <:< Updated
 type CanMove[P <: Phase] = P <:< (Ready | Updated)
 type HasMoved[P <: Phase] = P <:< Moved
 
@@ -77,7 +78,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   private def unsafeSetReady: VMState[Ready] = this.asInstanceOf[VMState[Ready]]
   def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
 
-  def updateAgain(f: VMState[Ready] => VMState[Updated])(using P =:= Updated): VMState[Updated] =
+  def updateAgain(f: VMState[Ready] => VMState[Updated])(using IsUpdated[P]): VMState[Updated] =
     f(this.unsafeSetReady)
 
   def noOutput(using HasMoved[P]): Tick =
@@ -105,7 +106,9 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def progress(using CanMove[P]): VMState[Moved] = this.copy(pc = nextInstruction)
   def jump(a: Adr)(using CanMove[P]): VMState[Moved] = this.copy(pc = a)
 
-  def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(registers = registers.updated(r, v))
+  def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] =
+    this.copy(registers = registers.updated(r, v))
+
   def deref(w: Word): Word = if w.fitsU15 then w else registers(w.reg)
 
   extension (w: Word) def value: Lit = deref(w).lit
@@ -183,3 +186,14 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case OUT => this.progress.output(a)
     case IN => this.input
     case NOOP => this.progress.noOutput
+
+object VMState:
+  extension (vm: VMState[Ready])
+    def modifyPC(f: Adr => Adr)(using Emulator.HackPerm): VMState[Ready] =
+      vm.copy(pc = f(vm.pc))
+    def modifyRegisters(f: Registers => Registers)(using Emulator.HackPerm): VMState[Ready] =
+      vm.copy(registers = f(vm.registers))
+    def modifyStack(f: Stack => Stack)(using Emulator.HackPerm): VMState[Ready] =
+      vm.copy(stack = f(vm.stack))
+    def modifyMemory(f: Memory => Memory)(using Emulator.HackPerm): VMState[Ready] =
+      vm.copy(memory = f(vm.memory))

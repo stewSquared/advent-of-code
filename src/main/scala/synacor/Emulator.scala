@@ -4,6 +4,8 @@ import collection.immutable.Queue
 
 // TODO alternate between in/out types
 case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String], inputHistory: Queue[String], oplog: Queue[String], oplogEnabled: Boolean):
+  given perm: Emulator.HackPerm = Emulator.HackPerm
+
   def feedMultiple(inputs: List[String]): Emulator =
     inputs.foldLeft(this):
       case (state, input) =>
@@ -60,19 +62,17 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
       // TODO: drop command history
     case _ => this
 
-  def setRegisters(f: Registers => Registers): Emulator = state match
+  def modifyState(f: VMState[Ready] => VMState[Ready]): Emulator = state match
     case tick: Tick.Input =>
-      val newTick = Tick.Input:
-        tick.f.andThen: vm =>
-          vm.copy(registers = f(vm.registers))
-      this.copy(state = newTick)
+      this.copy(state = Tick.Input(tick.f.andThen(f)))
     case tick: Tick.Continue =>
-      val newTick = tick.copy(state = tick.state.copy(registers = f(tick.state.registers)))
-      this.copy(state = newTick)
+      this.copy(state = Tick.Continue(f(tick.state)))
     case tick: Tick.Output =>
-      val newTick = tick.copy(state = tick.state.copy(registers = f(tick.state.registers)))
-      this.copy(state = newTick)
+      this.copy(state = tick.copy(state = f(tick.state)))
     case _ => ???
+
+  def setRegister(r: numbers.Reg, v: numbers.U15): Emulator =
+    modifyState(_.modifyRegisters(_.updated(r, v)))
 
   def getRegister(reg: numbers.Reg): numbers.Word = state match
     case tick: Tick.Input => tick.f(' ').registers(reg) // TODO: is hack
@@ -81,3 +81,5 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
 object Emulator:
   def init(start: Tick): Emulator =
     apply(start, Nil, Queue.empty, Queue.empty, Queue.empty, false)
+  trait HackPerm
+  val HackPerm = new HackPerm {}
