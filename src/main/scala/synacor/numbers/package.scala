@@ -8,7 +8,10 @@ opaque type Lit <: U15 = Int
 opaque type Reg <: Word = Int
 
 extension (n: Int)
+  def toU15: Lit = U15.fromInt(n)
   def toLit: Lit = Word.fromInt(n)
+  def toAdr: Adr = Adr.fromInt(n)
+  def toReg: Reg = Reg.fromInt(n)
 
 object Word:
   def fromBytes(low: Byte, high: Byte): Word =
@@ -19,6 +22,7 @@ object Word:
     n
 
   extension (w: Word)
+    def u15: U15 = U15.fromInt(w)
     def adr: Adr = Adr.fromInt(w)
     def lit: Lit = Lit.fromInt(w)
     def reg: Reg = Reg.fromInt(w)

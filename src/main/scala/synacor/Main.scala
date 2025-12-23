@@ -69,12 +69,12 @@ import numbers.*
       case "/oplog hash" =>
         typeln(s"${emu.oplog.hashCode()}")
       case s"/get R${i}" =>
-        val r = numbers.Reg.fromIndex(i.toInt)
+        val r = Reg.fromIndex(i.toInt)
         val word = emu.getRegister(r)
         typeln(s"Register $r value is: ${word.hex}")
       case s"/set R${i} $n" =>
-        val r = numbers.Reg.fromIndex(i.toInt)
-        val v = numbers.U15.fromInt(n.toInt)
+        val r = Reg.fromIndex(i.toInt)
+        val v = n.toInt.toU15
         emu = emu.setRegister(r, v)
         typeln(s"Set Register $r to value: ${v.hex}")
       case command =>
