@@ -56,16 +56,17 @@ import numbers.*
     io.StdIn.readLine() match
       case "/halt" => ???
       case "/undo" | "/oops" => emu = emu.undo
-      case "/inputlog" => println(emu.inputHistory.map(_.strip).mkString("List(\"","\", \"", "\")"))
-      case "/toggle oplog" =>
+      case "/hist" => emu.inputHistory.map(_.strip).foreach(typeln)
+      case "/oplog toggle" =>
         emu = emu.toggleOplog
         typeln(s"oplog enabled: ${emu.oplogEnabled}")
-      case "/show oplog" =>
+      case "/oplog show" =>
         emu.oplog.foreach(println)
-      case "/clear oplog" => emu = emu.clearOplog
-      case "/size oplog" =>
+      case "/oplog clear" => emu = emu.clearOplog
+        typeln("cleared oplog")
+      case "/oplog size" =>
         typeln(s"${emu.oplog.size} instructions ran")
-      case "/hash oplog" =>
+      case "/oplog hash" =>
         typeln(s"${emu.oplog.hashCode()}")
       case s"/get R${i}" =>
         val r = numbers.Reg.fromIndex(i.toInt)
