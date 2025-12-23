@@ -129,40 +129,40 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   given Registers = this.registers
 
   def tick(using IsReady[P]): Tick = inst match
-    case Inst.HALT => halt
-    case Inst.SET(a, b) => store(a.reg, b.value).progress.noOutput
-    case Inst.PUSH(a) => push(a.value).progress.noOutput
-    case Inst.POP(a) => pop match
+    case HALT => halt
+    case SET(a, b) => store(a.reg, b.value).progress.noOutput
+    case PUSH(a) => push(a.value).progress.noOutput
+    case POP(a) => pop match
       case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
-    case Inst.EQ(a, b, c) =>
+    case EQ(a, b, c) =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
       store(a.reg, x).progress.noOutput
-    case Inst.GT(a, b, c) =>
+    case GT(a, b, c) =>
       val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
       store(a.reg, x).progress.noOutput
-    case Inst.JMP(a) => jump(a.value).noOutput
-    case Inst.JT(a, b) =>
+    case JMP(a) => jump(a.value).noOutput
+    case JT(a, b) =>
       if a.value != 0.toLit then this.jump(b.value).noOutput
       else progress.noOutput
-    case Inst.JF(a, b) =>
+    case JF(a, b) =>
       if a.value == 0.toLit then this.jump(b.value).noOutput
       else progress.noOutput
-    case Inst.ADD(a, b, c) => store(a.reg, b.value + c.value).progress.noOutput
-    case Inst.MULT(a, b, c) => store(a.reg, b.value * c.value).progress.noOutput
-    case Inst.MOD(a, b, c) => store(a.reg, b.value % c.value).progress.noOutput
-    case Inst.AND(a, b, c) => store(a.reg, b.value & c.value).progress.noOutput
-    case Inst.OR(a, b, c) => store(a.reg, b.value | c.value).progress.noOutput
-    case Inst.NOT(a, b) => store(a.reg, ~(b.value)).progress.noOutput
-    case Inst.RMEM(a, b) => store(a.reg, read(b.value).lit).progress.noOutput
-    case Inst.WMEM(a, b) => write(a.value, b.value).progress.noOutput
-    case Inst.CALL(a) => push(nextInstruction).jump(a.value).noOutput
-    case Inst.RET => pop match
+    case ADD(a, b, c) => store(a.reg, b.value + c.value).progress.noOutput
+    case MULT(a, b, c) => store(a.reg, b.value * c.value).progress.noOutput
+    case MOD(a, b, c) => store(a.reg, b.value % c.value).progress.noOutput
+    case AND(a, b, c) => store(a.reg, b.value & c.value).progress.noOutput
+    case OR(a, b, c) => store(a.reg, b.value | c.value).progress.noOutput
+    case NOT(a, b) => store(a.reg, ~(b.value)).progress.noOutput
+    case RMEM(a, b) => store(a.reg, read(b.value).lit).progress.noOutput
+    case WMEM(a, b) => write(a.value, b.value).progress.noOutput
+    case CALL(a) => push(nextInstruction).jump(a.value).noOutput
+    case RET => pop match
       case Some((w, s)) => s.jump(w.address).noOutput
       case None         => halt
-    case Inst.OUT(a) => this.progress.output(a.value)
-    case Inst.IN(a) => this.input
-    case Inst.NOOP => this.progress.noOutput
+    case OUT(a) => this.progress.output(a.value)
+    case IN(a) => this.input
+    case NOOP => this.progress.noOutput
 
 object VMState:
   extension (vm: VMState[Ready])
