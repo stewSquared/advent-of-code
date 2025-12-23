@@ -84,8 +84,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def noOutput(using HasMoved[P]): Tick =
     Tick.Continue(this.ready)
 
-  def output(w: Word)(using HasMoved[P]): Tick =
-    Tick.Output(deref(w).asChar, this.ready)
+  def output(n: Lit)(using HasMoved[P]): Tick =
+    Tick.Output(n.asChar, this.ready)
 
   def input(using ev: IsReady[P]): Tick = Tick.Input:
     ch => this.store(a.reg, ch.toLit).progress.ready
@@ -149,43 +149,45 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case OUT => showArgs(showChar(a))
     case NOOP | RET | HALT => s"@${pc.hex}: $op"
 
-  def tick(using IsReady[P]): Tick = op match
-    case HALT => this.halt
-    case SET => store(a.reg, b.value).progress.noOutput
-    case PUSH => push(a.value).progress.noOutput // TODO: can we dereference a?
-    case POP => this.pop match
+  def inst: Inst = Inst.parse(op, a, b, c)
+
+  given Registers = this.registers
+
+  def tick(using IsReady[P]): Tick = inst match
+    case Inst.HALT => halt
+    case Inst.SET(a, b) => store(a.reg, b.value).progress.noOutput
+    case Inst.PUSH(a) => push(a.value).progress.noOutput
+    case Inst.POP(a) => pop match
       case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
-    case EQ =>
+    case Inst.EQ(a, b, c) =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
       store(a.reg, x).progress.noOutput
-    case GT =>
+    case Inst.GT(a, b, c) =>
       val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
       store(a.reg, x).progress.noOutput
-    case JMP => jump(a.address).noOutput
-    case JT =>
-      if a.value != 0.toLit then this.jump(b.address).noOutput
-      else this.progress.noOutput
-    case JF =>
-      if a.value == 0.toLit then this.jump(b.address).noOutput
-      else this.progress.noOutput
-    case ADD => this.store(a.reg, b.value + c.value).progress.noOutput
-    case MULT => this.store(a.reg, b.value * c.value).progress.noOutput
-    case MOD => this.store(a.reg, b.value % c.value).progress.noOutput
-    case AND => this.store(a.reg, b.value & c.value).progress.noOutput
-    case OR => this.store(a.reg, b.value | c.value).progress.noOutput
-    case NOT => this.store(a.reg, ~(b.value)).progress.noOutput
-    case RMEM => this.store(a.reg, read(b.address).lit).progress.noOutput
-    case WMEM => this.write(a.address, b.value).progress.noOutput
-    case CALL => this
-      .push(nextInstruction)
-      .jump(a.address).noOutput
-    case RET => this.pop match
+    case Inst.JMP(a) => jump(a.value).noOutput
+    case Inst.JT(a, b) =>
+      if a.value != 0.toLit then this.jump(b.value).noOutput
+      else progress.noOutput
+    case Inst.JF(a, b) =>
+      if a.value == 0.toLit then this.jump(b.value).noOutput
+      else progress.noOutput
+    case Inst.ADD(a, b, c) => store(a.reg, b.value + c.value).progress.noOutput
+    case Inst.MULT(a, b, c) => store(a.reg, b.value * c.value).progress.noOutput
+    case Inst.MOD(a, b, c) => store(a.reg, b.value % c.value).progress.noOutput
+    case Inst.AND(a, b, c) => store(a.reg, b.value & c.value).progress.noOutput
+    case Inst.OR(a, b, c) => store(a.reg, b.value | c.value).progress.noOutput
+    case Inst.NOT(a, b) => store(a.reg, ~(b.value)).progress.noOutput
+    case Inst.RMEM(a, b) => store(a.reg, read(b.value).lit).progress.noOutput
+    case Inst.WMEM(a, b) => write(a.value, b.value).progress.noOutput
+    case Inst.CALL(a) => push(nextInstruction).jump(a.value).noOutput
+    case Inst.RET => pop match
       case Some((w, s)) => s.jump(w.address).noOutput
-      case None         => this.halt
-    case OUT => this.progress.output(a)
-    case IN => this.input
-    case NOOP => this.progress.noOutput
+      case None         => halt
+    case Inst.OUT(a) => this.progress.output(a.value)
+    case Inst.IN(a) => this.input
+    case Inst.NOOP => this.progress.noOutput
 
 object VMState:
   extension (vm: VMState[Ready])
