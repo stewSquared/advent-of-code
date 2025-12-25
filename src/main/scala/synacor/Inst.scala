@@ -80,7 +80,7 @@ enum Inst(val op: Opcode):
   /** write the character represented by ascii code <a> to the terminal */
   case OUT(a: Arg[Lit]) extends Inst(Opcode.OUT)
   /** read a character from the terminal and write its ascii code to <a>; it can be assumed that once input starts, it will continue until a newline is encountered; this means that you can safely read whole lines from the keyboard and trust that they will be fully read */
-  case IN(a: Arg[Adr]) extends Inst(Opcode.IN)
+  case IN(a: Reg) extends Inst(Opcode.IN)
   /** no operation */
   case NOOP extends Inst(Opcode.NOOP)
 
@@ -105,7 +105,7 @@ enum Inst(val op: Opcode):
     case CALL(a) => s"CALL ${a.show}"
     case RET => "RET"
     case OUT(a) => s"OUT ${a.show}"
-    case IN(a) => s"IN ${a.show}"
+    case IN(a) => s"IN ${a.name}"
     case NOOP => "NOOP"
 
   override def toString: String =
@@ -116,28 +116,29 @@ enum Inst(val op: Opcode):
 
 object Inst:
   extension (w: Word)
-    def arg[T <: U15 : Cast]: Arg[T] = Arg.parse(w)
+    def lit: Arg[Lit] = Arg.parse[Lit](w)
+    def adr: Arg[Adr] = Arg.parse[Adr](w)
 
   def parse(op: Opcode, a: => Word, b: => Word, c: => Word): Inst = op match
     case Opcode.HALT => Inst.HALT
-    case Opcode.SET => Inst.SET(a.reg, b.arg)
-    case Opcode.PUSH => Inst.PUSH(a.arg)
+    case Opcode.SET => Inst.SET(a.reg, b.lit)
+    case Opcode.PUSH => Inst.PUSH(a.lit)
     case Opcode.POP => Inst.POP(a.reg)
-    case Opcode.EQ => Inst.EQ(a.reg, b.arg, c.arg)
-    case Opcode.GT => Inst.GT(a.reg, b.arg, c.arg)
-    case Opcode.JMP => Inst.JMP(a.arg)
-    case Opcode.JT => Inst.JT(a.arg, b.arg)
-    case Opcode.JF => Inst.JF(a.arg, b.arg)
-    case Opcode.ADD => Inst.ADD(a.reg, b.arg, c.arg)
-    case Opcode.MULT => Inst.MULT(a.reg, b.arg, c.arg)
-    case Opcode.MOD => Inst.MOD(a.reg, b.arg, c.arg)
-    case Opcode.AND => Inst.AND(a.reg, b.arg, c.arg)
-    case Opcode.OR => Inst.OR(a.reg, b.arg, c.arg)
-    case Opcode.NOT => Inst.NOT(a.reg, b.arg)
-    case Opcode.RMEM => Inst.RMEM(a.reg, b.arg)
-    case Opcode.WMEM => Inst.WMEM(a.arg, b.arg)
-    case Opcode.CALL => Inst.CALL(a.arg)
+    case Opcode.EQ => Inst.EQ(a.reg, b.lit, c.lit)
+    case Opcode.GT => Inst.GT(a.reg, b.lit, c.lit)
+    case Opcode.JMP => Inst.JMP(a.adr)
+    case Opcode.JT => Inst.JT(a.lit, b.adr)
+    case Opcode.JF => Inst.JF(a.lit, b.adr)
+    case Opcode.ADD => Inst.ADD(a.reg, b.lit, c.lit)
+    case Opcode.MULT => Inst.MULT(a.reg, b.lit, c.lit)
+    case Opcode.MOD => Inst.MOD(a.reg, b.lit, c.lit)
+    case Opcode.AND => Inst.AND(a.reg, b.lit, c.lit)
+    case Opcode.OR => Inst.OR(a.reg, b.lit, c.lit)
+    case Opcode.NOT => Inst.NOT(a.reg, b.lit)
+    case Opcode.RMEM => Inst.RMEM(a.reg, b.adr)
+    case Opcode.WMEM => Inst.WMEM(a.adr, b.lit)
+    case Opcode.CALL => Inst.CALL(a.adr)
     case Opcode.RET => Inst.RET
-    case Opcode.OUT => Inst.OUT(a.arg)
-    case Opcode.IN => Inst.IN(a.arg)
+    case Opcode.OUT => Inst.OUT(a.lit)
+    case Opcode.IN => Inst.IN(a.reg)
     case Opcode.NOOP => Inst.NOOP
