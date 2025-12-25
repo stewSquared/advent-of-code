@@ -20,29 +20,29 @@ enum Opcode:
     case PUSH | POP | JMP | CALL | OUT | IN => 1
     case _ => 0
 
-case class Registers(underlying: IArray[Word]):
+case class Registers(underlying: IArray[U15]):
   require(underlying.sizeIs == 8)
   def apply(r: Reg): Word = underlying(r.toIndex)
 
-  def updated(r: Reg, w: Word): Registers =
+  def updated(r: Reg, w: U15): Registers =
     Registers(underlying.updated(r.toIndex, w))
 
 object Registers:
   def apply(
-    r0: Word,
-    r1: Word,
-    r2: Word,
-    r3: Word,
-    r4: Word,
-    r5: Word,
-    r6: Word,
-    r7: Word
+    r0: U15,
+    r1: U15,
+    r2: U15,
+    r3: U15,
+    r4: U15,
+    r5: U15,
+    r6: U15,
+    r7: U15
   ): Registers = Registers.apply(IArray(r0, r1, r2, r3, r4, r5, r6, r7))
   def init: Registers =
-    Registers.apply(IArray.fill(8)(Word.fromInt(0)))
+    Registers.apply(IArray.fill(8)(U15.fromInt(0)))
 
-type Stack = List[Word]
-// type Memory = Map[Adr, Word]
+type Stack = List[U15]
+
 case class Memory(underlying: Vector[Word]):
   def apply(a: Adr): Word = underlying(a.toIndex)
   def updated(a: Adr, w: Word): Memory =
@@ -115,7 +115,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   extension (w: Word) def address: Adr = deref(w).adr
 
   def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
-  def pop(using IsReady[P]): Option[(Word, VMState[Updated])] =
+  def pop(using IsReady[P]): Option[(U15, VMState[Updated])] =
     stack.headOption.map(_ -> this.copy(stack = stack.tail))
 
   def read(a: Adr): Word = memory(a)
