@@ -32,8 +32,6 @@ object Cast:
     def apply(w: Word) = w.lit
   given Cast[Adr]:
     def apply(w: Word) = w.adr
-  given Cast[U15]:
-    def apply(w: Word) = w.u15
 
   extension(w: Word)
     def cast[T](using cast: Cast[T]): T = cast.apply(w)
