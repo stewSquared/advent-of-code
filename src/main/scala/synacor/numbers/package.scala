@@ -26,9 +26,6 @@ object Word:
     def adr: Adr = Adr.fromInt(w)
     def lit: Lit = Lit.fromInt(w)
     def reg: Reg = Reg.fromInt(w)
-    // def value: Reg | Lit =
-    //   if (w & 0x8000) == 0x8000 then Reg.fromInt(w)
-    //   else Lit.fromInt(w)
     def asChar: Char = w.toChar
     def fitsU15: Boolean = (w & 0x8000) != 0x8000
     def op: Opcode = Opcode.fromOrdinal(w)

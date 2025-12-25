@@ -109,11 +109,6 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] =
     this.copy(registers = registers.updated(r, v))
 
-  def deref(w: Word): Word = if w.fitsU15 then w else registers(w.reg)
-
-  extension (w: Word) def value: Lit = deref(w).lit
-  extension (w: Word) def address: Adr = deref(w).adr
-
   def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
   def pop(using IsReady[P]): Option[(U15, VMState[Updated])] =
     stack.headOption.map(_ -> this.copy(stack = stack.tail))
@@ -133,7 +128,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case SET(a, b) => store(a.reg, b.value).progress.noOutput
     case PUSH(a) => push(a.value).progress.noOutput
     case POP(a) => pop match
-      case Some(w -> s) => s.updateAgain(_.store(a.reg, w.value)).progress.noOutput
+      case Some(w -> s) => s.updateAgain(_.store(a.reg, Arg.parse(w).value)).progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
     case EQ(a, b, c) =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
@@ -161,7 +156,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
       this.store(Reg.R1, 6.toLit).progress.noOutput // hack to set R1 to 6 before calling 0x178B
     case CALL(a) => push(nextInstruction).jump(a.value).noOutput
     case RET => pop match
-      case Some((w, s)) => s.jump(w.address).noOutput
+      case Some((w, s)) => s.jump(Arg.parse(w).value).noOutput
       case None         => halt
     case OUT(a) => this.progress.output(a.value)
     case IN(a) => this.input
