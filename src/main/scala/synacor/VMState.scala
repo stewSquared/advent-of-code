@@ -87,15 +87,18 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def output(n: Lit)(using HasMoved[P]): Tick =
     Tick.Output(n.asChar, this.ready)
 
-  def input(using ev: IsReady[P]): Tick = Tick.Input:
-    ch => this.store(a.reg, ch.toLit).progress.ready
+  def input(reg: Reg)(using ev: IsReady[P]): Tick = Tick.Input:
+    ch => this.store(reg, ch.toLit).progress.ready
 
   def halt: Tick = Tick.Halt(code = ExitCode.Success)
 
   def op: Opcode = memory(pc).op
-  def a: Word = memory(pc.inc1)
-  def b: Word = memory(pc.inc2)
-  def c: Word = memory(pc.inc3)
+
+  def inst: Inst = Inst.parse(op,
+    a = memory(pc.inc1),
+    b = memory(pc.inc2),
+    c = memory(pc.inc3)
+  )
 
   def nextInstruction: Adr = op.numParams match
     case 0 => pc.inc1
@@ -118,8 +121,6 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   def showInst(using IsReady[P]): String =
     s"@${pc.hex}: ${inst.show(using registers, memory)}"
-
-  def inst: Inst = Inst.parse(op, a, b, c)
 
   given Registers = this.registers
 
@@ -159,7 +160,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
       case Some((w, s)) => s.jump(Arg.parse(w).value).noOutput
       case None         => halt
     case OUT(a) => this.progress.output(a.value)
-    case IN(a) => this.input
+    case IN(a) => this.input(a)
     case NOOP => this.progress.noOutput
 
 object VMState:
