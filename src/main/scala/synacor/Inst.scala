@@ -18,6 +18,12 @@ enum Arg[T <: U15]:
     case Const(value) => value.hex
     case Ref(reg) => s"${reg.name}(${regs(reg).hex})"
 
+object Arg:
+  import Cast.cast
+
+  def parse[T <: U15 : Cast](w: Word): Arg[T] =
+    if w.fitsU15 then Arg.Const(w.cast) else Arg.Ref(w.reg)
+
 trait Cast[T]:
   def apply(w: Word): T
 
@@ -31,12 +37,6 @@ object Cast:
 
   extension(w: Word)
     def cast[T](using cast: Cast[T]): T = cast.apply(w)
-
-object Arg:
-  import Cast.cast
-
-  def fromWord[T <: U15 : Cast](w: Word): Arg[T] =
-    if w.fitsU15 then Arg.Const(w.cast) else Arg.Ref(w.reg)
 
 enum Inst(val op: Opcode):
   /** stop execution and terminate the program */
@@ -116,7 +116,7 @@ enum Inst(val op: Opcode):
 
 object Inst:
   extension (w: Word)
-    def arg[T <: U15 : Cast]: Arg[T] = Arg.fromWord(w)
+    def arg[T <: U15 : Cast]: Arg[T] = Arg.parse(w)
 
   def parse(op: Opcode, a: => Word, b: => Word, c: => Word): Inst = op match
     case Opcode.HALT => Inst.HALT
