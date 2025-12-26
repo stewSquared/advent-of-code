@@ -4,7 +4,7 @@ import synacor.numbers.*
 
 case class Registers(underlying: IArray[U15]):
   require(underlying.sizeIs == 8)
-  def apply(r: Reg): Word = underlying(r.toIndex)
+  def apply(r: Reg): U15 = underlying(r.toIndex)
 
   def updated(r: Reg, w: U15): Registers =
     Registers(underlying.updated(r.toIndex, w))
@@ -17,8 +17,8 @@ type Stack = List[U15]
 
 case class Memory(underlying: Vector[Word]):
   def apply(a: Adr): Word = underlying(a.toIndex)
-  def updated(a: Adr, w: Word): Memory =
-    Memory(underlying.updated(a.toIndex, w))
+  def updated(a: Adr, v: U15): Memory =
+    Memory(underlying.updated(a.toIndex, v))
 
 sealed trait Phase
 class Ready extends Phase
@@ -81,14 +81,14 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def progress(using CanMove[P]): VMState[Moved] = this.copy(pc = nextInstruction)
   def jump(a: Adr)(using CanMove[P]): VMState[Moved] = this.copy(pc = a)
 
-  def store(r: Reg, v: Lit)(using IsReady[P]): VMState[Updated] =
+  def store(r: Reg, v: U15)(using IsReady[P]): VMState[Updated] =
     this.copy(registers = registers.updated(r, v))
 
   def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
   def pop(using IsReady[P]): Option[(U15, VMState[Updated])] =
     stack.headOption.map(_ -> this.copy(stack = stack.tail))
 
-  def read(a: Adr): Word = memory(a)
+  def read(a: Adr): U15 = memory(a).u15
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
 
   def showInst(using IsReady[P]): String =
@@ -101,7 +101,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case SET(a, b) => store(a.reg, b.value).progress.noOutput
     case PUSH(a) => push(a.value).progress.noOutput
     case POP(a) => pop match
-      case Some(w -> s) => s.updateAgain(_.store(a.reg, Arg.parse(w).value)).progress.noOutput
+      case Some(v -> s) => s.updateAgain(_.store(a.reg, v)).progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
     case EQ(a, b, c) =>
       val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
@@ -122,14 +122,14 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case AND(a, b, c) => store(a.reg, b.value & c.value).progress.noOutput
     case OR(a, b, c) => store(a.reg, b.value | c.value).progress.noOutput
     case NOT(a, b) => store(a.reg, ~(b.value)).progress.noOutput
-    case RMEM(a, b) => store(a.reg, read(b.value).lit).progress.noOutput
+    case RMEM(a, b) => store(a.reg, read(b.value)).progress.noOutput
     case WMEM(a, b) => write(a.value, b.value).progress.noOutput
     case CALL(a) if a == Arg.Const(0x178B.toAdr) =>
       println("HACKERMANN enabled")
       this.store(Reg.R1, 6.toLit).progress.noOutput // hack to set R1 to 6 before calling 0x178B
     case CALL(a) => push(nextInstruction).jump(a.value).noOutput
     case RET => pop match
-      case Some((w, s)) => s.jump(Arg.parse(w).value).noOutput
+      case Some((v, s)) => s.jump(v.adr).noOutput
       case None         => halt
     case OUT(a) => this.progress.output(a.value)
     case IN(a) => this.input(a)
