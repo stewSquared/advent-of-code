@@ -43,7 +43,7 @@ object Arg:
   import Cast.cast
 
   def parse[T <: U15 : Cast](w: Word): Arg[T] =
-    if w.fitsU15 then Arg.Const(w.cast) else Arg.Ref(w.reg)
+    if w.fitsU15 then Arg.Const(w.cast) else Arg.Ref(Reg.parse(w))
 
 trait Cast[T]:
   def apply(w: Word): T
@@ -137,6 +137,7 @@ object Inst:
   extension (w: Word)
     def lit: Arg[Lit] = Arg.parse[Lit](w)
     def adr: Arg[Adr] = Arg.parse[Adr](w)
+    def reg: Reg = Reg.parse(w)
 
   def parse(op: Opcode, a: => Word, b: => Word, c: => Word): Inst = op match
     case Opcode.HALT => Inst.HALT
