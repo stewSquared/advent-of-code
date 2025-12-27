@@ -13,7 +13,14 @@ object Registers:
   def init: Registers =
     Registers.apply(IArray.fill(8)(0.toU15))
 
-type Stack = List[U15]
+case class Stack(underlying: List[U15]):
+  def push(v: U15): Stack = Stack(v :: underlying)
+  def pop: Option[(U15, Stack)] = underlying match
+    case v :: vs => Some(v -> Stack(vs))
+    case Nil => None
+
+object Stack:
+  def init: Stack = Stack(Nil)
 
 case class Memory(underlying: Vector[Word]):
   def apply(a: Adr): Word = underlying(a.toIndex)
@@ -84,9 +91,14 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def store(r: Reg, v: U15)(using IsReady[P]): VMState[Updated] =
     this.copy(registers = registers.updated(r, v))
 
-  def push(w: Adr | Lit)(using IsReady[P]): VMState[Updated] = this.copy(stack = w :: stack)
-  def pop(using IsReady[P]): Option[(U15, VMState[Updated])] =
-    stack.headOption.map(_ -> this.copy(stack = stack.tail))
+  def push(v: U15)(using IsReady[P]): VMState[Updated] =
+    this.copy[Updated](stack = stack.push(v))
+
+  def popAdr(using IsReady[P]): Option[(Adr, VMState[Updated])] =
+    stack.pop.map((v, s) => v.asAdr -> this.copy[Updated](stack = s))
+
+  def popLit(using IsReady[P]): Option[(Lit, VMState[Updated])] =
+    stack.pop.map((v, s) => v.asLit -> this.copy[Updated](stack = s))
 
   def read(a: Adr): U15 = U15.parse(memory(a))
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
@@ -107,8 +119,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case HALT => halt
     case SET(a, b) => store(a, b.lit).progress.noOutput
     case PUSH(a) => push(a.lit).progress.noOutput
-    case POP(a) => pop match
-      case Some(v -> s) => s.updateAgain(_.store(a, v)).progress.noOutput
+    case POP(a) => popLit match
+      case Some(n -> s) => s.updateAgain(_.store(a, n)).progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
     case EQ(a, b, c) =>
       val x: Lit = if b.lit == c.lit then 1.toLit else 0.toLit // boolean tolit?
@@ -135,8 +147,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
       println("HACKERMANN enabled")
       this.store(Reg.R1, 6.toLit).progress.noOutput // hack to set R1 to 6 before calling 0x178B
     case CALL(a) => push(nextInstruction).jump(a.adr).noOutput
-    case RET => pop match
-      case Some((v, s)) => s.jump(v.asAdr).noOutput
+    case RET => popAdr match
+      case Some((a, s)) => s.jump(a).noOutput
       case None         => halt
     case OUT(a) => this.progress.output(a.lit)
     case IN(a) => this.input(a)
