@@ -79,7 +79,7 @@ import numbers.*
         typeln(s"Register $r value is: ${value.hex}")
       case s"/set R${i} $n" =>
         val r = Reg.fromIndex(i.toInt)
-        val v = n.toInt.toU15
+        val v = U15.parse(n.toWord)
         emu = emu.setRegister(r, v)
         typeln(s"Set Register $r to value: ${v.hex}")
       case command =>

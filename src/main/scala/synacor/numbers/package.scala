@@ -12,6 +12,9 @@ extension (n: Int)
   def toAdr: Adr = Adr.fromInt(n)
   def toReg: Reg = Reg.fromInt(n)
 
+extension (s: String)
+  def toWord: Word = Word.fromInt(Integer.parseUnsignedInt(s, 10))
+
 object Word:
   def fromBytes(low: Byte, high: Byte): Word =
     low & 0xFF | (high << 8) & 0xFF00
