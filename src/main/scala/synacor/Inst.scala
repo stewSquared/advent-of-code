@@ -31,9 +31,12 @@ enum Arg[T <: U15]:
     case Const(value) => value.hex
     case Ref(reg) => reg.name
 
-  def value(using regs: Registers, cast: Cast[T]): T = this match
+  private def value(using regs: Registers): U15 = this match
     case Const(value) => value
-    case Ref(reg) => cast(Word.fromU15(regs(reg)))
+    case Ref(reg) => regs(reg)
+
+  def lit(using regs: Registers, ev: T <:< Lit): Lit = value.asLit
+  def adr(using regs: Registers, ev: T <:< Adr): Adr = value.asAdr
 
   def show(using regs: Registers): String = this match
     case Const(value) => value.hex
@@ -119,7 +122,7 @@ enum Inst(val op: Opcode):
     case AND(a, b, c) => s"AND ${a.name} ${b.show} ${c.show}"
     case OR(a, b, c) => s"OR ${a.name} ${b.show} ${c.show}"
     case NOT(a, b) => s"NOT ${a.name} ${b.show}"
-    case RMEM(a, b) => s"RMEM ${a.name} M[${b.show}](${summon[Memory].apply(b.value).hex})"
+    case RMEM(a, b) => s"RMEM ${a.name} M[${b.show}](${summon[Memory](b.adr).hex})"
     case WMEM(a, b) => s"WMEM M[${a.show}] ${b.show}"
     case CALL(a) => s"CALL ${a.show}"
     case RET => "RET"

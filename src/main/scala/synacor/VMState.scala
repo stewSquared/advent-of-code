@@ -105,40 +105,40 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   def tick(using IsReady[P]): Tick = inst.tap(checkR8) match
     case HALT => halt
-    case SET(a, b) => store(a, b.value).progress.noOutput
-    case PUSH(a) => push(a.value).progress.noOutput
+    case SET(a, b) => store(a, b.lit).progress.noOutput
+    case PUSH(a) => push(a.lit).progress.noOutput
     case POP(a) => pop match
       case Some(v -> s) => s.updateAgain(_.store(a, v)).progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
     case EQ(a, b, c) =>
-      val x: Lit = if b.value == c.value then 1.toLit else 0.toLit // boolean tolit?
+      val x: Lit = if b.lit == c.lit then 1.toLit else 0.toLit // boolean tolit?
       store(a, x).progress.noOutput
     case GT(a, b, c) =>
-      val x: Lit = if b.value > c.value then 1.toLit else 0.toLit
+      val x: Lit = if b.lit > c.lit then 1.toLit else 0.toLit
       store(a, x).progress.noOutput
-    case JMP(a) => jump(a.value).noOutput
+    case JMP(a) => jump(a.adr).noOutput
     case JT(a, b) =>
-      if a.value != 0.toLit then this.jump(b.value).noOutput
+      if a.lit != 0.toLit then this.jump(b.adr).noOutput
       else progress.noOutput
     case JF(a, b) =>
-      if a.value == 0.toLit then this.jump(b.value).noOutput
+      if a.lit == 0.toLit then this.jump(b.adr).noOutput
       else progress.noOutput
-    case ADD(a, b, c) => store(a, b.value + c.value).progress.noOutput
-    case MULT(a, b, c) => store(a, b.value * c.value).progress.noOutput
-    case MOD(a, b, c) => store(a, b.value % c.value).progress.noOutput
-    case AND(a, b, c) => store(a, b.value & c.value).progress.noOutput
-    case OR(a, b, c) => store(a, b.value | c.value).progress.noOutput
-    case NOT(a, b) => store(a, ~(b.value)).progress.noOutput
-    case RMEM(a, b) => store(a, read(b.value)).progress.noOutput
-    case WMEM(a, b) => write(a.value, b.value).progress.noOutput
+    case ADD(a, b, c) => store(a, b.lit + c.lit).progress.noOutput
+    case MULT(a, b, c) => store(a, b.lit * c.lit).progress.noOutput
+    case MOD(a, b, c) => store(a, b.lit % c.lit).progress.noOutput
+    case AND(a, b, c) => store(a, b.lit & c.lit).progress.noOutput
+    case OR(a, b, c) => store(a, b.lit | c.lit).progress.noOutput
+    case NOT(a, b) => store(a, ~(b.lit)).progress.noOutput
+    case RMEM(a, b) => store(a, read(b.adr)).progress.noOutput
+    case WMEM(a, b) => write(a.adr, b.lit).progress.noOutput
     case CALL(a) if a == Arg.Const(0x178B.toAdr) =>
       println("HACKERMANN enabled")
       this.store(Reg.R1, 6.toLit).progress.noOutput // hack to set R1 to 6 before calling 0x178B
-    case CALL(a) => push(nextInstruction).jump(a.value).noOutput
+    case CALL(a) => push(nextInstruction).jump(a.adr).noOutput
     case RET => pop match
       case Some((v, s)) => s.jump(v.asAdr).noOutput
       case None         => halt
-    case OUT(a) => this.progress.output(a.value)
+    case OUT(a) => this.progress.output(a.lit)
     case IN(a) => this.input(a)
     case NOOP => this.progress.noOutput
 
