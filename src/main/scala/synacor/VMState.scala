@@ -11,7 +11,7 @@ case class Registers(underlying: IArray[U15]):
 
 object Registers:
   def init: Registers =
-    Registers.apply(IArray.fill(8)(U15.fromInt(0)))
+    Registers.apply(IArray.fill(8)(0.toU15))
 
 type Stack = List[U15]
 

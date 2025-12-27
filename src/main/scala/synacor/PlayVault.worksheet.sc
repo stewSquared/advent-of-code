@@ -18,7 +18,7 @@ val memory = util.Using(resource): is =>
 .get
 
 val startVM = VMState[Ready](
-  pc = Adr.fromInt(0),
+  pc = 0.toAdr,
   registers = Registers.init,
   stack = Nil,
   memory = memory,
