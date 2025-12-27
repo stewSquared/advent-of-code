@@ -30,7 +30,7 @@ enum Arg[T <: U15]:
 
   def value(using regs: Registers, cast: Cast[T]): T = this match
     case Const(value) => value
-    case Ref(reg) => cast(regs(reg))
+    case Ref(reg) => cast(Word.fromU15(regs(reg)))
 
   def show(using regs: Registers): String = this match
     case Const(value) => value.hex

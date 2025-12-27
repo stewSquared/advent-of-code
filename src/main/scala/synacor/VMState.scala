@@ -18,7 +18,7 @@ type Stack = List[U15]
 case class Memory(underlying: Vector[Word]):
   def apply(a: Adr): Word = underlying(a.toIndex)
   def updated(a: Adr, v: U15): Memory =
-    Memory(underlying.updated(a.toIndex, v))
+    Memory(underlying.updated(a.toIndex, Word.fromU15(v)))
 
 sealed trait Phase
 class Ready extends Phase
@@ -57,7 +57,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     Tick.Continue(this.ready)
 
   def output(n: Lit)(using HasMoved[P]): Tick =
-    Tick.Output(n.asChar, this.ready)
+    Tick.Output(n.toChar, this.ready)
 
   def input(reg: Reg)(using ev: IsReady[P]): Tick = Tick.Input:
     ch => this.store(reg, ch.toLit).progress.ready
@@ -136,7 +136,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
       this.store(Reg.R1, 6.toLit).progress.noOutput // hack to set R1 to 6 before calling 0x178B
     case CALL(a) => push(nextInstruction).jump(a.value).noOutput
     case RET => pop match
-      case Some((v, s)) => s.jump(v.adr).noOutput
+      case Some((v, s)) => s.jump(v.asAdr).noOutput
       case None         => halt
     case OUT(a) => this.progress.output(a.value)
     case IN(a) => this.input(a)
