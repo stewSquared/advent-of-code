@@ -53,7 +53,7 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - added ability to set/get register
 - tried teleporting with a different register value
 
-### 2025-12-18 -- Part 6 -- ???
+### 2025-12-18 -- Part 6 -- Live Bytecode Inspection
 
 - added ability to print a VM state's currently running instruction
 - added an oplog to our emulator
@@ -67,6 +67,17 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - bypassed ackerman
 - found new area!
 - found a journal
+
+### 2025-12-24 -- Part 7 -- Vault Puzzle and Bytecode Extraction
+
+- filered running bytecode
+- explored vault <<<
+- tried dijkstra/bfs to find solution
+- probably need to use math?
+- overflow problem?
+- diffed orb vs orbless walking
+- extracted "- 9" bytecode, four functions of interest <<<
+- still need to reverse ackerman function <<<
 
 ## Wishlist
 
@@ -84,10 +95,14 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
   - [?] write to file?
 - [X] PRINT currently running instruction
 - [X] Count ticks between commands
-- [ ] model the assembly language? - useful for ASM DSL, or parsing
+- [X] model the assembly language? - useful for ASM DSL, or parsing
+- [X] Add hooks for R8 access
+- [X] Read the journal, scout ahead in the new area
+- [ ] Figure out correct R8 value for ackerman
+- [ ] diff vault door memory
 - [ ] disassemble bytecode into something readable => reverse engineering
 - [ ] functions indpendent from repl command for worksheet
-- [ ] ability to inspect state // or play with worksheet
+- [/] ability to inspect state // or play with worksheet
 - [ ] diff two states?
 - [ ] diff memory when picking up teleporter?
 - [ ] diff memory when moving rooms?
