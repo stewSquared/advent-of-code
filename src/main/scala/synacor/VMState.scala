@@ -53,9 +53,9 @@ enum ExitCode:
 case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory):
   import Inst.*
 
-  def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
+  inline def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
 
-  def noUpdate(using IsReady[P]): VMState[Updated] = this.asInstanceOf[VMState[Updated]]
+  inline def noUpdate(using IsReady[P]): VMState[Updated] = this.asInstanceOf[VMState[Updated]]
 
   def noOutput(using HasMoved[P]): Tick =
     Tick.Continue(this.ready)
@@ -82,11 +82,11 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case 2 => pc.inc3
     case 3 => pc.inc4
 
-  def progress(using IsUpdated[P]): VMState[Moved] = this.copy(pc = nextInstruction)
-  def jump(a: Adr)(using IsUpdated[P]): VMState[Moved] = this.copy(pc = a)
+  def progress(using IsUpdated[P]): VMState[Moved] = this.copy[Moved](pc = nextInstruction)
+  def jump(a: Adr)(using IsUpdated[P]): VMState[Moved] = this.copy[Moved](pc = a)
 
   def store(r: Reg, v: U15)(using IsReady[P]): VMState[Updated] =
-    this.copy(registers = registers.updated(r, v))
+    this.copy[Updated](registers = registers.updated(r, v))
 
   def push(v: U15)(using IsReady[P]): VMState[Updated] =
     this.copy[Updated](stack = stack.push(v))
@@ -98,7 +98,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     stack.pop.map((v, s) => this.copy[Updated](registers = registers.updated(r, v), stack = s))
 
   def read(a: Adr): U15 = U15.parse(memory(a))
-  def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
+  def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy[Updated](memory = memory.updated(a, v))
 
   def showInst(using IsReady[P]): String =
     s"@${pc.hex}: ${inst.show(using registers, memory)}"
