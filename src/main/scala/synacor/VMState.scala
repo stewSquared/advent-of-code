@@ -54,11 +54,7 @@ enum ExitCode:
 case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memory: Memory):
   import Inst.*
 
-  private def unsafeSetReady: VMState[Ready] = this.asInstanceOf[VMState[Ready]]
   def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
-
-  def updateAgain(f: VMState[Ready] => VMState[Updated])(using IsUpdated[P]): VMState[Updated] =
-    f(this.unsafeSetReady)
 
   def noOutput(using HasMoved[P]): Tick =
     Tick.Continue(this.ready)
@@ -97,8 +93,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def popAdr(using IsReady[P]): Option[(Adr, VMState[Updated])] =
     stack.pop.map((v, s) => v.asAdr -> this.copy[Updated](stack = s))
 
-  def popLit(using IsReady[P]): Option[(Lit, VMState[Updated])] =
-    stack.pop.map((v, s) => v.asLit -> this.copy[Updated](stack = s))
+  def popToReg(r: Reg)(using IsReady[P]): Option[VMState[Updated]] =
+    stack.pop.map((v, s) => this.copy[Updated](registers = registers.updated(r, v), stack = s))
 
   def read(a: Adr): U15 = U15.parse(memory(a))
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
@@ -119,8 +115,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case HALT => halt
     case SET(a, b) => store(a, b.lit).progress.noOutput
     case PUSH(a) => push(a.lit).progress.noOutput
-    case POP(a) => popLit match
-      case Some(n -> s) => s.updateAgain(_.store(a, n)).progress.noOutput
+    case POP(a) => popToReg(a) match
+      case Some(s) => s.progress.noOutput
       case None => Tick.Halt(code = ExitCode.EmptyStack)
     case EQ(a, b, c) =>
       val x: Lit = if b.lit == c.lit then 1.toLit else 0.toLit // boolean tolit?
