@@ -88,7 +88,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def pop(using IsReady[P]): Option[(U15, VMState[Updated])] =
     stack.headOption.map(_ -> this.copy(stack = stack.tail))
 
-  def read(a: Adr): U15 = memory(a).u15
+  def read(a: Adr): U15 = U15.parse(memory(a))
   def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy(memory = memory.updated(a, v))
 
   def showInst(using IsReady[P]): String =
