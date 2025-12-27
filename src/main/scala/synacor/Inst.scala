@@ -43,22 +43,8 @@ enum Arg[T <: U15]:
     case Ref(reg) => s"${reg.name}(${regs(reg).hex})"
 
 object Arg:
-  import Cast.cast
-
-  def parse[T <: U15 : Cast](w: Word): Arg[T] =
-    if w.fitsU15 then Arg.Const(w.cast) else Arg.Ref(Reg.parse(w))
-
-trait Cast[T]:
-  def apply(w: Word): T
-
-object Cast:
-  given Cast[Lit]:
-    def apply(w: Word) = Lit.parse(w)
-  given Cast[Adr]:
-    def apply(w: Word) = Adr.parse(w)
-
-  extension(w: Word)
-    def cast[T](using cast: Cast[T]): T = cast.apply(w)
+  def parse[T <: U15](f: Word => T)(w: Word): Arg[T] =
+    if w.fitsU15 then Const(f(w)) else Ref(Reg.parse(w))
 
 enum Inst(val op: Opcode):
   /** stop execution and terminate the program */
@@ -138,9 +124,9 @@ enum Inst(val op: Opcode):
 
 object Inst:
   extension (w: Word)
-    def lit: Arg[Lit] = Arg.parse[Lit](w)
-    def adr: Arg[Adr] = Arg.parse[Adr](w)
-    def reg: Reg = Reg.parse(w)
+    private def lit = Arg.parse(Lit.parse)(w)
+    private def adr = Arg.parse(Adr.parse)(w)
+    private def reg = Reg.parse(w)
 
   def parse(op: Opcode, a: => Word, b: => Word, c: => Word): Inst = op match
     case Opcode.HALT => Inst.HALT
