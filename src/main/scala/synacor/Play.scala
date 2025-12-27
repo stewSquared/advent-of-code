@@ -23,7 +23,7 @@ import synacor.VMState
   val startVM = VMState[Ready](
     pc = 0.toAdr,
     registers = Registers.init,
-    stack = Nil,
+    stack = Stack.init,
     memory = memory,
   )
 
