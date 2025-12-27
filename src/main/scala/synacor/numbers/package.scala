@@ -26,7 +26,6 @@ object Word:
   def fromU15(n: U15): Word = n
 
   extension (w: Word)
-    def reg: Reg = Reg.fromInt(w)
     def fitsU15: Boolean = (w & 0x8000) != 0x8000
     def hex: String = f"0x${w}%04X"
     def toInt: Int = w
@@ -69,10 +68,6 @@ enum Reg:
   case R1, R2, R3, R4, R5, R6, R7, R8
 
 object Reg:
-  def fromInt(n: Int): Reg =
-    require(0x8000 <= n && n <= 0x8007, s"invalid register value: ${n.toHexString}")
-    Reg.fromOrdinal(n & 0x7FFF)
-
   def parse(w: Word): Reg =
     require((0x8000 to 0x8007).contains(w), s"invalid register value: ${w.hex}")
     Reg.fromOrdinal(w.toInt & 0x7)
