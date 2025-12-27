@@ -97,10 +97,9 @@ extension (a: Adr)
     case 2 => a.inc3
     case 3 => a.inc4
 
-
 extension (memory: Memory)
-  def extractFunction(adr: Adr, ret: Int = 0): List[(Adr, Inst)] =
-    def loop(adr: Adr, ret: Int): List[(Adr, Inst)] =
+  def extractFunction(adr: Adr): List[Inst] =
+    def loop(adr: Adr): List[Inst] =
       val op = memory(adr).op
       def a = memory(adr.inc1)
       def b = memory(adr.inc2)
@@ -108,29 +107,25 @@ extension (memory: Memory)
       val inst = Inst.parse(op, a, b, c)
 
       inst match
-        case Inst.RET if ret == 0 => Nil
-        case Inst.RET => (adr -> Inst.RET) :: loop(adr.nextInstruction(op), ret - 1)
-        case inst => (adr -> inst) :: loop(adr.nextInstruction(op), ret)
-    loop(adr, ret)
+        case Inst.RET => Nil
+        case inst => inst :: loop(adr.nextInstruction(op))
+    loop(adr)
 
-def show(pair: (Adr, Inst)): Unit = println:
-  val (adr, inst) = pair
-  s"@${adr.hex}: $inst"
+3 + 3
+startVM.memory.extractFunction(Adr.fromInt(0x084D)) foreach println // R1 = XOR(R1, R2)
+startVM.memory.extractFunction(Adr.fromInt(0x05B2)) foreach println
+startVM.memory.extractFunction(Adr.fromInt(0x0683)) foreach println
+startVM.memory.extractFunction(Adr.fromInt(0x0623)) foreach println //
+startVM.memory.extractFunction(Adr.fromInt(0x154B+3)) foreach println
+startVM.memory.extractFunction(Adr.fromInt(0x178B)) foreach println // ???
 
-println("0x084D function:")
-startVM.memory.extractFunction(Adr.fromInt(0x084D)) foreach show // R1 = XOR(R1, R2)
-println("0x05B2 function:")
-startVM.memory.extractFunction(Adr.fromInt(0x05B2)) foreach show
-println("0x0683 function:")
-startVM.memory.extractFunction(Adr.fromInt(0x0683)) foreach show
-println("0x0623 function:")
-startVM.memory.extractFunction(Adr.fromInt(0x0623)) foreach show //
-println("0x154B+3 function: runs after failing JF")
-startVM.memory.extractFunction(Adr.fromInt(0x154B+3)) foreach show
-println("0x178B function: from infinite loop")
-startVM.memory.extractFunction(Adr.fromInt(0x178B), ret = 2) foreach show // ???
-println("0x0731 function:")
-startVM.memory.extractFunction(Adr.fromInt(0x0731)) foreach show // ???
+
+// CALL(0x1135)
+// CALL(R3)
+// CALL(0x08C8)
+// CALL(0x08E9)
+// CALL(0x11A3)
+
 
 
 // start.step
