@@ -28,13 +28,12 @@ case class Memory(underlying: Vector[Word]):
     Memory(underlying.updated(a.toIndex, Word.fromU15(v)))
 
 sealed trait Phase
-class Ready extends Phase
-class Updated extends Phase
-class Moved extends Phase
+final class Ready extends Phase
+final class Updated extends Phase
+final class Moved extends Phase
 
 type IsReady[P <: Phase] = P <:< Ready
 type IsUpdated[P <: Phase] = P <:< Updated
-type CanMove[P <: Phase] = P <:< (Ready | Updated)
 type HasMoved[P <: Phase] = P <:< Moved
 
 enum Tick:
@@ -55,6 +54,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   import Inst.*
 
   def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
+
+  def noUpdate(using IsReady[P]): VMState[Updated] = this.asInstanceOf[VMState[Updated]]
 
   def noOutput(using HasMoved[P]): Tick =
     Tick.Continue(this.ready)
@@ -81,8 +82,8 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case 2 => pc.inc3
     case 3 => pc.inc4
 
-  def progress(using CanMove[P]): VMState[Moved] = this.copy(pc = nextInstruction)
-  def jump(a: Adr)(using CanMove[P]): VMState[Moved] = this.copy(pc = a)
+  def progress(using IsUpdated[P]): VMState[Moved] = this.copy(pc = nextInstruction)
+  def jump(a: Adr)(using IsUpdated[P]): VMState[Moved] = this.copy(pc = a)
 
   def store(r: Reg, v: U15)(using IsReady[P]): VMState[Updated] =
     this.copy(registers = registers.updated(r, v))
@@ -124,13 +125,13 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case GT(a, b, c) =>
       val x: Lit = if b.lit > c.lit then 1.toLit else 0.toLit
       store(a, x).progress.noOutput
-    case JMP(a) => jump(a.adr).noOutput
+    case JMP(a) => noUpdate.jump(a.adr).noOutput
     case JT(a, b) =>
-      if a.lit != 0.toLit then this.jump(b.adr).noOutput
-      else progress.noOutput
+      if a.lit != 0.toLit then noUpdate.jump(b.adr).noOutput
+      else noUpdate.progress.noOutput
     case JF(a, b) =>
-      if a.lit == 0.toLit then this.jump(b.adr).noOutput
-      else progress.noOutput
+      if a.lit == 0.toLit then noUpdate.jump(b.adr).noOutput
+      else noUpdate.progress.noOutput
     case ADD(a, b, c) => store(a, b.lit + c.lit).progress.noOutput
     case MULT(a, b, c) => store(a, b.lit * c.lit).progress.noOutput
     case MOD(a, b, c) => store(a, b.lit % c.lit).progress.noOutput
@@ -146,9 +147,9 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case RET => popAdr match
       case Some((a, s)) => s.jump(a).noOutput
       case None         => halt(ExitCode.Success)
-    case OUT(a) => this.progress.output(a.lit)
-    case IN(a) => this.input(a)
-    case NOOP => this.progress.noOutput
+    case OUT(a) => noUpdate.progress.output(a.lit)
+    case IN(a) => input(a)
+    case NOOP => noUpdate.progress.noOutput
 
 object VMState:
   extension (vm: VMState[Ready])
