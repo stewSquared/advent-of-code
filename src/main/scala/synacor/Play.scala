@@ -4,7 +4,6 @@ import synacor.numbers.*
 import synacor.VMState
 
 @main def play(): Unit =
-  println("")
   def resource = Thread.currentThread()
     .getContextClassLoader
     .getResourceAsStream("synacor/challenge.bin")
@@ -35,27 +34,9 @@ import synacor.VMState
   emu = emu.feedMultiple(shortcut.map(_ + '\n'))
   emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
   emu = emu.toggleOplog
-  emu.oplogEnabled
-  // emu = emu.setRegister(Reg.R8, U15.fromInt(42))
   emu = emu.feed("use teleporter\n")
-  emu.oplog.size
-  // emu.oplog foreach println
   emu = emu.clearOplog
   emu = emu.progressUntilBlocked.useOutput(println)
-  emu.oplog.size
-  // emu.oplog.map(_.swap) foreach println
-  emu.oplog.map(_._2).count(_.contains("R8"))
-  // emu.oplog.map(_._2).filter(_.contains("R8")) foreach println
-  emu.oplog.map(_._1).count(_.op == Opcode.CALL)
-  // emu.oplog.map(_._1).filter(_.op == Opcode.CALL) foreach println
-  // val callCounts = emu.oplog.map(_._1).filter(_.op == Opcode.CALL).groupMapReduce(identity)(_ => 1)(_ + _)
-  // callCounts.toList.sortBy(-_._2) foreach println
-  // 2125.adr
-
-  given Emulator.HackPerm = Emulator.HackPerm
-
-  startVM.modifyPC(_ => Adr.fromInt(0x084D)).showInst
-  startVM.memory.apply(Adr.fromInt(2125)).hex
 
   extension (a: Adr)
     def nextInstruction(op: Opcode) = op.numParams match
@@ -79,21 +60,103 @@ import synacor.VMState
           case inst => (adr -> inst) :: loop(adr.nextInstruction(op), ret)
       loop(adr, ret)
 
-  def show(pair: (Adr, Inst)): Unit = println:
+  def show(pair: (Adr, Inst)): String =
     val (adr, inst) = pair
     s"@${adr.hex}: $inst"
 
-  println("0x084D function:")
-  startVM.memory.extractFunction(Adr.fromInt(0x084D)) foreach show // R1 = XOR(R1, R2)
-  println("0x05B2 function:")
-  startVM.memory.extractFunction(Adr.fromInt(0x05B2)) foreach show
-  println("0x0683 function:")
-  startVM.memory.extractFunction(Adr.fromInt(0x0683)) foreach show
-  println("0x0623 function:")
-  startVM.memory.extractFunction(Adr.fromInt(0x0623)) foreach show //
-  println("0x154B+3 function: runs after failing JF")
-  startVM.memory.extractFunction(Adr.fromInt(0x154B+3)) foreach show
-  println("0x178B function: from infinite loop")
-  startVM.memory.extractFunction(Adr.fromInt(0x178B), ret = 2) foreach show // ???
-  println("0x0731 function:")
-  startVM.memory.extractFunction(Adr.fromInt(0x0731)) foreach show // ???
+  def printExtract(adr: Adr, ret: Int = 0): Unit =
+    println(s"@${adr.hex}: CALL")
+    startVM.memory.extractFunction(adr, ret = ret).map(show) foreach println
+    println
+
+  printExtract(Adr.fromInt(0x084D)) // R1 = XOR(R1, R2)
+  printExtract(Adr.fromInt(0x05B2))
+  printExtract(Adr.fromInt(0x0683))
+  printExtract(Adr.fromInt(0x0623)) //
+  printExtract(Adr.fromInt(0x154B+3))
+  printExtract(Adr.fromInt(0x178B), ret = 2) // ???
+  printExtract(Adr.fromInt(0x0731)) // ???
+  printExtract(Adr.fromInt(0x1721)) // ???
+  printExtract(Adr.fromInt(0x0607)) // ???
+
+  // CALL(R3)
+  printExtract(0x1135.toAdr) // from - 9 in vault
+  printExtract(0x08C8.toAdr) // from - 9 in vault
+  printExtract(0x08E9.toAdr) // from - 9 in vault
+  printExtract(0x11A3.toAdr) // from - 9 in vault
+
+// @0x1135: CALL
+// @0x1135: PUSH(R1)
+// @0x1137: PUSH(R2)
+// @0x1139: PUSH(R3)
+// @0x113B: PUSH(R4)
+// @0x113D: PUSH(R5)
+// @0x113F: PUSH(R6)
+// @0x1141: RMEM(R6, 0x0F71)
+// @0x1144: GT(R4, R6, 0x752F)
+// @0x1148: JT(R4, 0x1152)
+// @0x114B: ADD(R6, R6, 0x0001)
+// @0x114F: WMEM(0x0F71, R6)
+// @0x1152: SET(R4, R1)
+// @0x1155: SET(R5, R2)
+// @0x1158: ADD(R1, R6, 0x0002)
+// @0x115C: CALL(0x08E9)
+// @0x115E: RMEM(R2, 0x0F72)
+// @0x1161: OR(R1, R2, R1)
+// @0x1165: SET(R2, R5)
+// @0x1168: CALL(0x08C8)
+// @0x116A: WMEM(0x0F72, R1)
+// @0x116D: SET(R1, 0x0F73)
+// @0x1170: ADD(R2, R6, 0x0002)
+// @0x1174: SET(R3, R5)
+// @0x1177: CALL(0x11A3)
+// @0x1179: SET(R1, 0x0F74)
+// @0x117C: MULT(R2, R6, R6)
+// @0x1180: MULT(R3, R5, R5)
+// @0x1184: CALL(0x11A3)
+// @0x1186: SET(R1, 0x0F75)
+// @0x1189: SET(R2, 0x000D)
+// @0x118C: MULT(R3, R4, 0x0009)
+// @0x1190: MULT(R3, R3, R3)
+// @0x1194: CALL(0x11A3)
+// @0x1196: POP(R6)
+// @0x1198: POP(R5)
+// @0x119A: POP(R4)
+// @0x119C: POP(R3)
+// @0x119E: POP(R2)
+// @0x11A0: POP(R1)
+
+// @0x08C8: CALL
+// @0x08C8: PUSH(R2)
+// @0x08CA: PUSH(R3)
+// @0x08CC: JF(R2, 0x08E4)
+// @0x08CF: ADD(R2, R2, 0x7FFF)
+// @0x08D3: AND(R3, R1, 0x4000)
+// @0x08D7: MULT(R1, R1, 0x0002)
+// @0x08DB: JF(R3, 0x08CC)
+// @0x08DE: OR(R1, R1, 0x0001)
+// @0x08E2: JMP(0x08CC)
+// @0x08E4: POP(R3)
+// @0x08E6: POP(R2)
+
+// @0x08E9: CALL
+// @0x08E9: PUSH(R2)
+// @0x08EB: GT(R2, R1, 0x000E)
+// @0x08EF: JT(R2, 0x0905)
+// @0x08F2: SET(R2, R1)
+// @0x08F5: SET(R1, 0x0001)
+// @0x08F8: JF(R2, 0x0908)
+// @0x08FB: ADD(R2, R2, 0x7FFF)
+// @0x08FF: MULT(R1, R1, 0x0002)
+// @0x0903: JMP(0x08F8)
+// @0x0905: SET(R1, 0x7FFF)
+// @0x0908: POP(R2)
+
+// @0x11A3: CALL
+// @0x11A3: PUSH(R1)
+// @0x11A5: RMEM(R1, R1)
+// @0x11A8: CALL(0x08C8)
+// @0x11AA: SET(R2, R3)
+// @0x11AD: CALL(0x084D)
+// @0x11AF: POP(R2)
+// @0x11B1: WMEM(R2, R1)
