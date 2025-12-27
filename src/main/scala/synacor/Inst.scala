@@ -20,6 +20,9 @@ enum Opcode:
     case PUSH | POP | JMP | CALL | OUT | IN => 1
     case _ => 0
 
+object Opcode:
+  def parse(w: Word): Opcode = fromOrdinal(w.toInt)
+
 enum Arg[T <: U15]:
   case Const(value: T)
   case Ref(reg: Reg)
