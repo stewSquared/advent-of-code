@@ -22,7 +22,7 @@ import numbers.*
   var emu: Emulator = Emulator.init:
     Tick.Continue:
       VMState[Ready](
-        pc = Adr.fromInt(0),
+        pc = 0.toAdr,
         registers = Registers.init,
         stack = Nil,
         memory = memory,

@@ -21,7 +21,7 @@ import synacor.VMState
   .get
 
   val startVM = VMState[Ready](
-    pc = Adr.fromInt(0),
+    pc = 0.toAdr,
     registers = Registers.init,
     stack = Nil,
     memory = memory,
@@ -46,7 +46,7 @@ import synacor.VMState
       case 3 => a.inc4
 
   extension (memory: Memory)
-    def extractFunction(adr: Adr, ret: Int = 0): List[(Adr, Inst)] =
+    def extractFunction(adr: Adr, ret: Int): List[(Adr, Inst)] =
       def loop(adr: Adr, ret: Int): List[(Adr, Inst)] =
         val op = memory(adr).op
         def a = memory(adr.inc1)
@@ -69,15 +69,15 @@ import synacor.VMState
     startVM.memory.extractFunction(adr, ret = ret).map(show) foreach println
     println
 
-  printExtract(Adr.fromInt(0x084D)) // R1 = XOR(R1, R2)
-  printExtract(Adr.fromInt(0x05B2))
-  printExtract(Adr.fromInt(0x0683))
-  printExtract(Adr.fromInt(0x0623)) //
-  printExtract(Adr.fromInt(0x154B+3))
-  printExtract(Adr.fromInt(0x178B), ret = 2) // ???
-  printExtract(Adr.fromInt(0x0731)) // ???
-  printExtract(Adr.fromInt(0x1721)) // ???
-  printExtract(Adr.fromInt(0x0607)) // ???
+  printExtract(0x084D.toAdr) // R1 = XOR(R1, R2)
+  printExtract(0x05B2.toAdr)
+  printExtract(0x0683.toAdr)
+  printExtract(0x0623.toAdr) //
+  printExtract((0x154B+3).toAdr)
+  printExtract(0x178B.toAdr, ret = 2) // ???
+  printExtract(0x0731.toAdr) // ???
+  printExtract(0x1721.toAdr) // ???
+  printExtract(0x0607.toAdr) // ???
 
   // CALL(R3)
   printExtract(0x1135.toAdr) // from - 9 in vault

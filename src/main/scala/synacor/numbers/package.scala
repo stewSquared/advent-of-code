@@ -7,10 +7,10 @@ opaque type Adr <: U15 = Int
 opaque type Lit <: U15 = Int
 
 extension (n: Int)
-  def toU15: Lit = U15.fromInt(n)
-  def toLit: Lit = Word.fromInt(n)
-  def toAdr: Adr = Adr.fromInt(n)
-  def toReg: Reg = Reg.fromInt(n)
+  def toU15: U15 = U15.parse(n)
+  def toLit: Lit = Lit.parse(n)
+  def toAdr: Adr = Adr.parse(n)
+  def toReg: Reg = Reg.parse(n)
 
 extension (s: String)
   def toWord: Word = Word.fromInt(Integer.parseUnsignedInt(s, 10))
@@ -34,9 +34,6 @@ object Word:
 
 object U15:
   val MaxValue: U15 = 0x7FFF
-  def fromInt(n: Int): U15 =
-    require(n <= U15.MaxValue, s"${n.toHexString} is not a valid unsigned 15-bit integer")
-    n
   def parse(w: Word): U15 =
     require(Word.fitsU15(w), s"${w.hex} is not a valid U15")
     w
@@ -47,7 +44,6 @@ extension (v: U15)
   inline def asLit: Lit = v
 
 object Adr:
-  def fromInt(n: Int): Adr = U15.fromInt(n)
   def parse(w: Word): Adr = U15.parse(w)
 
 extension (a: Adr)
@@ -58,7 +54,6 @@ extension (a: Adr)
   inline def toIndex: Int = a & 0x7FFF
 
 object Lit:
-  def fromInt(n: Int): Lit = U15.fromInt(n)
   def parse(w: Word): Lit = U15.parse(w)
 
 extension (a: Lit)

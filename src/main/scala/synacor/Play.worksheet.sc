@@ -49,7 +49,7 @@ val memory = util.Using(resource): is =>
 .get
 
 val startVM = VMState[Ready](
-  pc = Adr.fromInt(0),
+  pc = 0.toAdr,
   registers = Registers.init,
   stack = Nil,
   memory = memory,
@@ -87,8 +87,8 @@ callCounts.toList.sortBy(-_._2) foreach println
 
 given Emulator.HackPerm = Emulator.HackPerm
 
-startVM.modifyPC(_ => Adr.fromInt(0x084D)).showInst
-startVM.memory.apply(Adr.fromInt(2125)).hex
+startVM.modifyPC(_ => 0x084D.toAdr).showInst
+startVM.memory.apply(2125.toAdr).hex
 
 extension (a: Adr)
   def nextInstruction(op: Opcode) = op.numParams match
@@ -112,12 +112,12 @@ extension (memory: Memory)
     loop(adr)
 
 3 + 3
-startVM.memory.extractFunction(Adr.fromInt(0x084D)) foreach println // R1 = XOR(R1, R2)
-startVM.memory.extractFunction(Adr.fromInt(0x05B2)) foreach println
-startVM.memory.extractFunction(Adr.fromInt(0x0683)) foreach println
-startVM.memory.extractFunction(Adr.fromInt(0x0623)) foreach println //
-startVM.memory.extractFunction(Adr.fromInt(0x154B+3)) foreach println
-startVM.memory.extractFunction(Adr.fromInt(0x178B)) foreach println // ???
+startVM.memory.extractFunction(0x084D.toAdr) foreach println // R1 = XOR(R1, R2)
+startVM.memory.extractFunction(0x05B2.toAdr) foreach println
+startVM.memory.extractFunction(0x0683.toAdr) foreach println
+startVM.memory.extractFunction(0x0623.toAdr) foreach println //
+startVM.memory.extractFunction((0x154B+3).toAdr) foreach println
+startVM.memory.extractFunction(0x178B.toAdr) foreach println // ???
 
 
 // CALL(0x1135)

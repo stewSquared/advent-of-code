@@ -18,7 +18,7 @@ val memory = util.Using(resource): is =>
 .get
 
 val startVM = VMState[Ready](
-  pc = Adr.fromInt(0),
+  pc = 0.toAdr,
   registers = Registers.init,
   stack = Nil,
   memory = memory,
@@ -105,7 +105,7 @@ extension (memory: Memory)
         case inst => inst :: loop(adr.nextInstruction(op))
     loop(adr)
 
-startVM.memory.extractFunction(Adr.fromInt(0x1721)) foreach println
+startVM.memory.extractFunction(0x1721.toAdr) foreach println
 
 // 0x05B2
 
