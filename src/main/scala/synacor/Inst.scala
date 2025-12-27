@@ -49,45 +49,45 @@ object Arg:
 enum Inst(val op: Opcode):
   /** stop execution and terminate the program */
   case HALT extends Inst(Opcode.HALT)
-  /** set register <a> to the value of <b> */
+  /** set register `a` to the value of `b` */
   case SET(a: Reg, b: Arg[Lit]) extends Inst(Opcode.SET)
-  /** push <a> onto the stack */
+  /** push `a` onto the stack */
   case PUSH(a: Arg[Lit]) extends Inst(Opcode.PUSH)
-  /** remove the top element from the stack and write it into <a>; empty stack = error */
+  /** remove the top element from the stack and write it into `a`; empty stack = error */
   case POP(a: Reg) extends Inst(Opcode.POP)
-  /** set <a> to 1 if <b> is equal to <c>; set it to 0 otherwise */
+  /** set `a` to 1 if `b` is equal to `c`; set it to 0 otherwise */
   case EQ(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.EQ)
-  /** set <a> to 1 if <b> is greater than <c>; set it to 0 otherwise */
+  /** set `a` to 1 if `b` is greater than `c`; set it to 0 otherwise */
   case GT(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.GT)
-  /** jump to <a> */
+  /** jump to `a` */
   case JMP(a: Arg[Adr]) extends Inst(Opcode.JMP)
-  /** if <a> is nonzero, jump to <b> */
+  /** if `a` is nonzero, jump to `b` */
   case JT(a: Arg[Lit], b: Arg[Adr]) extends Inst(Opcode.JT)
-  /** if <a> is zero, jump to <b> */
+  /** if `a` is zero, jump to `b` */
   case JF(a: Arg[Lit], b: Arg[Adr]) extends Inst(Opcode.JF)
-  /** assign into <a> the sum of <b> and <c> (modulo 32768) */
+  /** assign into `a` the sum of `b` and `c` (modulo 32768) */
   case ADD(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.ADD)
-  /** store into <a> the product of <b> and <c> (modulo 32768) */
+  /** store into `a` the product of `b` and `c` (modulo 32768) */
   case MULT(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.MULT)
-  /** store into <a> the remainder of <b> divided by <c> */
+  /** store into `a` the remainder of `b` divided by `c` */
   case MOD(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.MOD)
-  /** stores into <a> the bitwise and of <b> and <c> */
+  /** stores into `a` the bitwise and of `b` and `c` */
   case AND(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.AND)
-  /** stores into <a> the bitwise or of <b> and <c> */
+  /** stores into `a` the bitwise or of `b` and `c` */
   case OR(a: Reg, b: Arg[Lit], c: Arg[Lit]) extends Inst(Opcode.OR)
-  /** stores 15-bit bitwise inverse of <b> in <a> */
+  /** stores 15-bit bitwise inverse of `b` in `a` */
   case NOT(a: Reg, b: Arg[Lit]) extends Inst(Opcode.NOT)
-  /** read memory at address <b> and write it to <a> */
+  /** read memory at address `b` and write it to `a` */
   case RMEM(a: Reg, b: Arg[Adr]) extends Inst(Opcode.RMEM)
-  /** write the value from <b> into memory at address <a> */
+  /** write the value from `b` into memory at address `a` */
   case WMEM(a: Arg[Adr], b: Arg[Lit]) extends Inst(Opcode.WMEM)
-  /** write the address of the next instruction to the stack and jump to <a> */
+  /** write the address of the next instruction to the stack and jump to `a` */
   case CALL(a: Arg[Adr]) extends Inst(Opcode.CALL)
   /** remove the top element from the stack and jump to it; empty stack = halt */
   case RET extends Inst(Opcode.RET)
-  /** write the character represented by ascii code <a> to the terminal */
+  /** write the character represented by ascii code `a` to the terminal */
   case OUT(a: Arg[Lit]) extends Inst(Opcode.OUT)
-  /** read a character from the terminal and write its ascii code to <a>; it can be assumed that once input starts, it will continue until a newline is encountered; this means that you can safely read whole lines from the keyboard and trust that they will be fully read */
+  /** read a character from the terminal and write its ascii code to `a`; it can be assumed that once input starts, it will continue until a newline is encountered; this means that you can safely read whole lines from the keyboard and trust that they will be fully read */
   case IN(a: Reg) extends Inst(Opcode.IN)
   /** no operation */
   case NOOP extends Inst(Opcode.NOOP)
