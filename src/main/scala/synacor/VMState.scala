@@ -96,7 +96,14 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   given Registers = this.registers
 
-  def tick(using IsReady[P]): Tick = inst match
+  def checkR8(inst: Inst): Unit =
+    val instStr = inst.show(using registers, memory)
+    if instStr.contains("R8") then
+      println(s"R8 accessed @${pc.hex}: $instStr")
+
+  import util.chaining.*
+
+  def tick(using IsReady[P]): Tick = inst.tap(checkR8) match
     case HALT => halt
     case SET(a, b) => store(a.reg, b.value).progress.noOutput
     case PUSH(a) => push(a.value).progress.noOutput
