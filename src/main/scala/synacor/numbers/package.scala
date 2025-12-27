@@ -2,7 +2,7 @@ package synacor
 package numbers
 
 opaque type Word = Int
-opaque type U15 <: Word = Int
+opaque type U15 = Int
 opaque type Adr <: U15 = Int
 opaque type Lit <: U15 = Int
 
@@ -20,12 +20,13 @@ object Word:
     require(n <= 0xFFFF, s"${n.toHexString} is not a valid 16-bit word")
     n
 
+  def fromU15(n: U15): Word = n
+
   extension (w: Word)
     def u15: U15 = U15.fromInt(w)
     def adr: Adr = Adr.fromInt(w)
     def lit: Lit = Lit.fromInt(w)
     def reg: Reg = Reg.fromInt(w)
-    def asChar: Char = w.toChar
     def fitsU15: Boolean = (w & 0x8000) != 0x8000
     def op: Opcode = Opcode.fromOrdinal(w)
     def hex: String = f"0x${w}%04X"
@@ -37,8 +38,13 @@ object U15:
     require(n <= U15.MaxValue, s"${n.toHexString} is not a valid unsigned 15-bit integer")
     n
   def parse(w: Word): U15 =
-    require(Word.fitsU15(w), s"${Word.hex(w)} is not a valid U15")
+    require(Word.fitsU15(w), s"${w.hex} is not a valid U15")
     w
+
+extension (v: U15)
+  inline def hex: String = f"0x${v}%04X"
+  inline def asAdr: Adr = v
+  inline def asLit: Lit = v
 
 object Adr:
   def fromInt(n: Int): Adr = U15.fromInt(n)
@@ -63,6 +69,7 @@ extension (a: Lit)
   infix def |(b: Lit): Lit = (a | b) & U15.MaxValue
   infix def >(b: Lit): Boolean = a > b
   def unary_~ = ((~a) & U15.MaxValue): Lit
+  inline def toChar: Char = a.toChar
 
 enum Reg:
   case R1, R2, R3, R4, R5, R6, R7, R8
@@ -73,7 +80,7 @@ object Reg:
     Reg.fromOrdinal(n & 0x7FFF)
 
   def parse(w: Word): Reg =
-    require((0x8000 to 0x8007).contains(w), s"invalid register value: ${Word.hex(w)}")
+    require((0x8000 to 0x8007).contains(w), s"invalid register value: ${w.hex}")
     Reg.fromOrdinal(w.toInt & 0x7)
 
   def fromIndex(i: Int): Reg = Reg.fromOrdinal(i)
