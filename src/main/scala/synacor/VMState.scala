@@ -65,7 +65,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   def input(reg: Reg)(using ev: IsReady[P]): Tick = Tick.Input:
     ch => this.store(reg, ch.toLit).progress.ready
 
-  def halt: Tick = Tick.Halt(code = ExitCode.Success)
+  def halt(code: ExitCode): Tick = Tick.Halt(code)
 
   val op: Opcode = Opcode.parse(memory(pc))
 
@@ -112,12 +112,12 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
   import util.chaining.*
 
   def tick(using IsReady[P]): Tick = inst.tap(checkR8) match
-    case HALT => halt
+    case HALT => halt(ExitCode.Success)
     case SET(a, b) => store(a, b.lit).progress.noOutput
     case PUSH(a) => push(a.lit).progress.noOutput
     case POP(a) => popToReg(a) match
       case Some(s) => s.progress.noOutput
-      case None => Tick.Halt(code = ExitCode.EmptyStack)
+      case None => halt(code = ExitCode.EmptyStack)
     case EQ(a, b, c) =>
       val x: Lit = if b.lit == c.lit then 1.toLit else 0.toLit // boolean tolit?
       store(a, x).progress.noOutput
@@ -145,7 +145,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case CALL(a) => push(nextInstruction).jump(a.adr).noOutput
     case RET => popAdr match
       case Some((a, s)) => s.jump(a).noOutput
-      case None         => halt
+      case None         => halt(ExitCode.Success)
     case OUT(a) => this.progress.output(a.lit)
     case IN(a) => this.input(a)
     case NOOP => this.progress.noOutput
