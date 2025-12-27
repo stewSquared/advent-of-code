@@ -47,9 +47,9 @@ trait Cast[T]:
 
 object Cast:
   given Cast[Lit]:
-    def apply(w: Word) = w.lit
+    def apply(w: Word) = Lit.parse(w)
   given Cast[Adr]:
-    def apply(w: Word) = w.adr
+    def apply(w: Word) = Adr.parse(w)
 
   extension(w: Word)
     def cast[T](using cast: Cast[T]): T = cast.apply(w)
