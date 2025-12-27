@@ -70,7 +70,7 @@ case class Emulator(state: Tick, history: List[Tick], outputQueue: Queue[String]
   def setRegister(r: numbers.Reg, v: numbers.U15): Emulator =
     modifyState(_.modifyRegisters(_.updated(r, v)))
 
-  def getRegister(reg: numbers.Reg): numbers.Word = state match
+  def getRegister(reg: numbers.Reg): numbers.U15 = state match
     case tick: Tick.Input => tick.f(' ').registers(reg) // TODO: is hack
     case _ => ???
 
