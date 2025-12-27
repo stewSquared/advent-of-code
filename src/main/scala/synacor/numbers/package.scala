@@ -29,15 +29,20 @@ object Word:
     def fitsU15: Boolean = (w & 0x8000) != 0x8000
     def op: Opcode = Opcode.fromOrdinal(w)
     def hex: String = f"0x${w}%04X"
+    def toInt: Int = w
 
 object U15:
   val MaxValue: U15 = 0x7FFF
   def fromInt(n: Int): U15 =
     require(n <= U15.MaxValue, s"${n.toHexString} is not a valid unsigned 15-bit integer")
     n
+  def parse(w: Word): U15 =
+    require(Word.fitsU15(w), s"${Word.hex(w)} is not a valid U15")
+    w
 
 object Adr:
   def fromInt(n: Int): Adr = U15.fromInt(n)
+  def parse(w: Word): Adr = U15.parse(w)
 
 extension (a: Adr)
   inline def inc1: Adr = a + 1
@@ -48,6 +53,7 @@ extension (a: Adr)
 
 object Lit:
   def fromInt(n: Int): Lit = U15.fromInt(n)
+  def parse(w: Word): Lit = U15.parse(w)
 
 extension (a: Lit)
   infix def +(b: Lit): Lit = (a + b) & U15.MaxValue
@@ -65,6 +71,10 @@ object Reg:
   def fromInt(n: Int): Reg =
     require(0x8000 <= n && n <= 0x8007, s"invalid register value: ${n.toHexString}")
     Reg.fromOrdinal(n & 0x7FFF)
+
+  def parse(w: Word): Reg =
+    require((0x8000 to 0x8007).contains(w), s"invalid register value: ${Word.hex(w)}")
+    Reg.fromOrdinal(w.toInt & 0x7)
 
   def fromIndex(i: Int): Reg = Reg.fromOrdinal(i)
 
