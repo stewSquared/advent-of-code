@@ -28,7 +28,6 @@ object Word:
   extension (w: Word)
     def reg: Reg = Reg.fromInt(w)
     def fitsU15: Boolean = (w & 0x8000) != 0x8000
-    def op: Opcode = Opcode.fromOrdinal(w)
     def hex: String = f"0x${w}%04X"
     def toInt: Int = w
 

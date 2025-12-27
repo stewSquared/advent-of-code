@@ -48,7 +48,7 @@ import synacor.VMState
   extension (memory: Memory)
     def extractFunction(adr: Adr, ret: Int): List[(Adr, Inst)] =
       def loop(adr: Adr, ret: Int): List[(Adr, Inst)] =
-        val op = memory(adr).op
+        val op = Opcode.parse(memory(adr))
         def a = memory(adr.inc1)
         def b = memory(adr.inc2)
         def c = memory(adr.inc3)

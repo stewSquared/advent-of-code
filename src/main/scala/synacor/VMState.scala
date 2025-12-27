@@ -64,7 +64,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   def halt: Tick = Tick.Halt(code = ExitCode.Success)
 
-  def op: Opcode = memory(pc).op
+  def op: Opcode = Opcode.parse(memory(pc))
 
   def inst: Inst = Inst.parse(op,
     a = memory(pc.inc1),
