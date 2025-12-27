@@ -51,6 +51,7 @@ object Adr:
     inline def inc4: Adr = a + 4
     inline def toIndex: Int = a & 0x7FFF
 
+@annotation.nowarn("msg=Extension method .* will never be selected*")
 object Lit:
   def parse(w: Word): Lit = U15.parse(w)
 
