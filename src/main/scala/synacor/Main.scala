@@ -75,8 +75,8 @@ import numbers.*
         typeln(s"${emu.oplog.hashCode()}")
       case s"/get R${i}" =>
         val r = Reg.fromIndex(i.toInt)
-        val word = emu.getRegister(r)
-        typeln(s"Register $r value is: ${word.hex}")
+        val value = emu.getRegister(r)
+        typeln(s"Register $r value is: ${value.hex}")
       case s"/set R${i} $n" =>
         val r = Reg.fromIndex(i.toInt)
         val v = n.toInt.toU15
