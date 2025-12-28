@@ -60,8 +60,8 @@ import aoc.*
         if s.weight > 0 // prevents evap
         if s.weight <= 0x7FFF // prevents shatter
         if !cost.contains(s) // dedup, prevents suboptimal
-        if !((s.pos == end.pos) && (s == end))
-        if !((s.pos == start.pos) && (s == start))
+        if s == end || s.pos != end.pos
+        if s == start || s.pos != start.pos
       do
         cost(s) = cost(current) + 1
         parent(s) = current
