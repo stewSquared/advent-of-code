@@ -29,11 +29,11 @@ case class Memory(underlying: Vector[Word]):
 
 sealed trait Phase
 final class Ready extends Phase
-final class Updated extends Phase
+final class Finished extends Phase
 final class Moved extends Phase
 
 type IsReady[P <: Phase] = P <:< Ready
-type IsUpdated[P <: Phase] = P <:< Updated
+type IsFinished[P <: Phase] = P <:< Finished
 type HasMoved[P <: Phase] = P <:< Moved
 
 enum Tick:
@@ -55,7 +55,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
 
   inline def ready(using HasMoved[P]): VMState[Ready] = this.asInstanceOf[VMState[Ready]]
 
-  inline def noUpdate(using IsReady[P]): VMState[Updated] = this.asInstanceOf[VMState[Updated]]
+  inline def noUpdate(using IsReady[P]): VMState[Finished] = this.asInstanceOf[VMState[Finished]]
 
   def noOutput(using HasMoved[P]): Tick =
     Tick.Continue(this.ready)
@@ -82,23 +82,23 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case 2 => pc.inc3
     case 3 => pc.inc4
 
-  def progress(using IsUpdated[P]): VMState[Moved] = this.copy[Moved](pc = nextInstruction)
-  def jump(a: Adr)(using IsUpdated[P]): VMState[Moved] = this.copy[Moved](pc = a)
+  def progress(using IsFinished[P]): VMState[Moved] = this.copy[Moved](pc = nextInstruction)
+  def jump(a: Adr)(using IsFinished[P]): VMState[Moved] = this.copy[Moved](pc = a)
 
-  def store(r: Reg, v: U15)(using IsReady[P]): VMState[Updated] =
-    this.copy[Updated](registers = registers.updated(r, v))
+  def store(r: Reg, v: U15)(using IsReady[P]): VMState[Finished] =
+    this.copy[Finished](registers = registers.updated(r, v))
 
-  def push(v: U15)(using IsReady[P]): VMState[Updated] =
-    this.copy[Updated](stack = stack.push(v))
+  def push(v: U15)(using IsReady[P]): VMState[Finished] =
+    this.copy[Finished](stack = stack.push(v))
 
-  def popAdr(using IsReady[P]): Option[(Adr, VMState[Updated])] =
-    stack.pop.map((v, s) => v.asAdr -> this.copy[Updated](stack = s))
+  def popAdr(using IsReady[P]): Option[(Adr, VMState[Finished])] =
+    stack.pop.map((v, s) => v.asAdr -> this.copy[Finished](stack = s))
 
-  def popToReg(r: Reg)(using IsReady[P]): Option[VMState[Updated]] =
-    stack.pop.map((v, s) => this.copy[Updated](registers = registers.updated(r, v), stack = s))
+  def popToReg(r: Reg)(using IsReady[P]): Option[VMState[Finished]] =
+    stack.pop.map((v, s) => this.copy[Finished](registers = registers.updated(r, v), stack = s))
 
   def read(a: Adr): U15 = U15.parse(memory(a))
-  def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Updated] = this.copy[Updated](memory = memory.updated(a, v))
+  def write(a: Adr, v: Lit)(using IsReady[P]): VMState[Finished] = this.copy[Finished](memory = memory.updated(a, v))
 
   def showInst(using IsReady[P]): String =
     s"@${pc.hex}: ${inst.show(using registers, memory)}"
