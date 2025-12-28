@@ -70,7 +70,7 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 
 ### 2025-12-24 -- Part 7 -- Vault Puzzle and Bytecode Extraction
 
-- filered running bytecode
+- filtered running bytecode
 - explored vault <<<
 - tried dijkstra/bfs to find solution
 - probably need to use math?

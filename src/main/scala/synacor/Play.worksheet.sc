@@ -119,6 +119,85 @@ startVM.memory.extractFunction(0x0623.toAdr) foreach println //
 startVM.memory.extractFunction((0x154B+3).toAdr) foreach println
 startVM.memory.extractFunction(0x178B.toAdr) foreach println // ???
 
+def ackLit(m: Lit, n: Lit, r8: Lit = 1.toLit): Lit = (m, n) match
+  case (m, n) if m == 0.toLit => n + 1.toLit
+  case (m, n) if n == 0.toLit => ackLit(m + 0x7FFF.toLit, r8)
+  case (m, n)                 => ackLit(m + 0x7FFF.toLit, ackLit(m, n + 0x7FFF.toLit))
+
+// ackLit(1,4)
+ackLit(4.toLit,1.toLit)
+// ackLit(4.toLit,1.toLit, 2.toLit)
+
+// ackLit(3.toLit,0.toLit)
+// ackLit(3.toLit,0.toLit, 11.toLit)
+// ackLit(3.toLit,1.toLit)
+// ackLit(3.toLit,1.toLit, 11.toLit)
+
+// ackLit(0.toLit,3.toLit)
+// ackLit(0.toLit,3.toLit, 11.toLit)
+
+def ack2(m: Int, n: Int): Int = (m, n) match
+  case (0, n) => n + 1
+  case (m, 0) => ack2(m - 1, 2)
+  case (m, n) => ack2(m - 1, ack2(m, n - 1))
+
+def ack11(m: Int, n: Int): Int = (m, n) match
+  case (0, n) => n + 1
+  case (m, 0) => ack11(m - 1, 11)
+  case (m, n) => ack11(m - 1, ack11(m, n - 1))
+
+def ack(m: Int, n: Int): Int = (m, n) match
+  case (0, n) => n + 1
+  case (m, 0) => ack(m - 1, 1)
+  case (m, n) => ack(m - 1, ack(m, n - 1))
+
+def ackN(m: Int, n: Int, r8: Int): Int = (m, n) match
+  case (0, r2) => r2 + 1
+  case (r1, 0) => ackN(r1 - 1, r8, r8)
+  case (r1, r2) => ackN(r1 - 1, ackN(r1, r2 - 1, r8), r8)
+
+ackN(3,1,1)
+
+// ack2(4,1) == 6
+// ack(4,1)
+// ackN(4,1,2)
+// ackN(4,1,3)
+
+// ack2(4,1,-10)
+// ack2(4,1,2)
+// ack2(4,1,11)
+// ack2(4,1,100)
+
+// ack2(1,4, 200)
+// ack(1,0)
+// ack2(1,0,2)
+// ack2(1,0,3)
+
+// ack(2,0)
+// ack2(2,0,2)
+// ack2(2,0,10)
+
+// ack(3,2)
+// ack2(3,2,11)
+
+// ack(3,1)
+// ack2(3,1,11)
+
+
+ack(1,4)
+
+ack(0, ack(1,3))
+ack(0, ack(0,ack(1,2)))
+ack(0, ack(0,ack(0,ack(1,1))))
+ack(0, ack(0,ack(0,ack(0,ack(0,1)))))
+ack(0, ack(0,ack(0,ack(0,2))))
+ack(0, ack(0,ack(0,3)))
+ack(0, ack(0,4))
+ack(0, 5)
+
+ack(2,2)
+ack(3,2)
+// ack(4,1) // 65533
 
 // CALL(0x1135)
 // CALL(R3)

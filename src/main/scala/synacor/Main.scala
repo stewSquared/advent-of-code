@@ -52,6 +52,10 @@ import numbers.*
   val toVault = List("use teleporter", "north", "north", "north", "north", "north", "north", "north", "north", "north")
   emu = emu.feedMultiple(toVault.map(_ + '\n'))
   emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
+  // val solveVault = "take orb,north,east,east,north,east,south,west,north,west,south,east,north,west,west,north".split(',').toList
+  val solveVault = "take orb,north,east,west,north,south,east,west,north,south,east,west,north,south,east,west,north,south,east,east,east,north".split(',').toList
+  emu = emu.feedMultiple(solveVault.map(_ + '\n'))
+  emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
   emu = emu.feed("look\n")
   // emu = emu.toggleOplog
 
@@ -74,11 +78,11 @@ import numbers.*
       case "/oplog hash" =>
         typeln(s"${emu.oplog.hashCode()}")
       case s"/get R${i}" =>
-        val r = Reg.fromIndex(i.toInt)
+        val r = Reg.fromIndex(i.toInt - 1)
         val value = emu.getRegister(r)
         typeln(s"Register $r value is: ${value.hex}")
       case s"/set R${i} $n" =>
-        val r = Reg.fromIndex(i.toInt)
+        val r = Reg.fromIndex(i.toInt - 1)
         val v = U15.parse(n.toWord)
         emu = emu.setRegister(r, v)
         typeln(s"Set Register $r to value: ${v.hex}")

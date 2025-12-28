@@ -140,7 +140,7 @@ case class VMState[P <: Phase](pc: Adr, registers: Registers, stack: Stack, memo
     case NOT(a, b) => store(a, ~(b.lit)).progress.noOutput
     case RMEM(a, b) => store(a, read(b.adr)).progress.noOutput
     case WMEM(a, b) => write(a.adr, b.lit).progress.noOutput
-    case CALL(a) if a == Arg.Const(0x178B.toAdr) =>
+    case CALL(a) if a.adr == 0x178B.toAdr =>
       println("HACKERMANN enabled")
       this.store(Reg.R1, 6.toLit).progress.noOutput // hack to set R1 to 6 before calling 0x178B
     case CALL(a) => push(nextInstruction).jump(a.adr).noOutput

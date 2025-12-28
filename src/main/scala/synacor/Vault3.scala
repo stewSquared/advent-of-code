@@ -2,7 +2,7 @@ package synacor
 import synacor.numbers.*
 import aoc.*
 
-@main def vault(): Unit =
+@main def vault3(): Unit =
   val grid = Vector(
     "x,8,-,1",
     "4,x,11,x",
@@ -13,14 +13,15 @@ import aoc.*
   val area = Area(grid)
 
   enum Op:
-    case Add, Sub, Mul, Const
+    case Add, Sub, Mul
+    case Const(n: Int)
 
   case class State(weight: Int, pos: Point, op: Op):
     def next: Set[State] =
       // TODO: avoid topright
       pos.adjacent.filter(_.inBounds(area)).map: p =>
         op match
-          case Op.Const => grid(p) match
+          case Op.Const(_) => grid(p) match
             case "x" => this.copy(pos = p, op = Op.Mul)
             case "+" => this.copy(pos = p, op = Op.Add)
             case "-" => this.copy(pos = p, op = Op.Sub)
@@ -34,10 +35,10 @@ import aoc.*
               case Op.Sub => weight - n
               // weight + (~n + 1.toLit)
               case _ => ???
-            this.copy(pos = p, weight = newWeight, op = Op.Const)
+            this.copy(pos = p, weight = newWeight, op = Op.Const(n))
 
-  val start = State(weight = 22, pos = Point(0,3), op = Op.Const)
-  val end = State(weight = 30, pos = Point(3,0), Op.Const)
+  val start = State(weight = 22, pos = Point(0,3), op = Op.Const(22))
+  val end = State(weight = 30, pos = Point(3,0), Op.Const(30))
 
   def search: List[State] =
     import collection.mutable.{PriorityQueue, Map}
@@ -93,8 +94,9 @@ import aoc.*
 
     path(current).toList
 
-  val ans = search
-  ans foreach println
+  // val ans = search
+  // ans foreach println
+  println("aoehutns")
 
 // State(22,Point(0,3),Const)
 // north (22,Point(0,2),Add)

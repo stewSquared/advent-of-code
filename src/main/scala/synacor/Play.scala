@@ -78,12 +78,14 @@ import synacor.VMState
   printExtract(0x0731.toAdr) // ???
   printExtract(0x1721.toAdr) // ???
   printExtract(0x0607.toAdr) // ???
+  printExtract(0x084D.toAdr) // ???
+  printExtract(0x05EE.toAdr) // ???
 
   // CALL(R3)
-  printExtract(0x1135.toAdr) // from - 9 in vault
-  printExtract(0x08C8.toAdr) // from - 9 in vault
-  printExtract(0x08E9.toAdr) // from - 9 in vault
-  printExtract(0x11A3.toAdr) // from - 9 in vault
+  // printExtract(0x1135.toAdr) // from - 9 in vault
+  // printExtract(0x08C8.toAdr) // from - 9 in vault
+  // printExtract(0x08E9.toAdr) // from - 9 in vault
+  // printExtract(0x11A3.toAdr) // from - 9 in vault
 
 // @0x1135: CALL
 // @0x1135: PUSH(R1)
