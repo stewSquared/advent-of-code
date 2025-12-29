@@ -53,7 +53,8 @@ import numbers.*
   emu = emu.feedMultiple(toVault.map(_ + '\n'))
   emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
   // val solveVault = "take orb,north,east,east,north,east,south,west,north,west,south,east,north,west,west,north".split(',').toList
-  val solveVault = "take orb,north,east,west,north,south,east,west,north,south,east,west,north,south,east,west,north,south,east,east,east,north".split(',').toList
+  // val solveVault = "take orb,north,east,west,north,south,east,west,north,south,east,west,north,south,east,west,north,south,east,east,east,north".split(',').toList
+  val solveVault = "take orb,north,east,east,north,west,south,east,east,west,north,north,east,east,east,vault".split(',').toList
   emu = emu.feedMultiple(solveVault.map(_ + '\n'))
   emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
   emu = emu.feed("look\n")

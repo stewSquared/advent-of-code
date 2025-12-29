@@ -79,6 +79,15 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - extracted "- 9" bytecode, four functions of interest <<<
 - still need to reverse ackerman function <<<
 
+### 2025-12-28 -- Part 7
+
+- ackerman reverse engineered properly
+- turns out, it has a different contstant
+- need to find the correct R8 value for that constant
+- narrowed down vault puzzle ranges
+- state space small enough, no need for search order strategies
+- accidentally prevented reaching goal -- bug is found
+
 ## Wishlist
 
 - [X] Interface for entering input into running VM
@@ -99,13 +108,11 @@ I'm sharing my problem solving and design approach live on stream! If you'd like
 - [X] Add hooks for R8 access
 - [X] Read the journal, scout ahead in the new area
 - [ ] Figure out correct R8 value for ackerman
-- [ ] diff vault door memory
-- [ ] disassemble bytecode into something readable => reverse engineering
+- [ ] optimize ackermann with constant R8 value
+- [/] disassemble bytecode into something readable => reverse engineering
 - [ ] functions indpendent from repl command for worksheet
 - [/] ability to inspect state // or play with worksheet
 - [ ] diff two states?
-- [ ] diff memory when picking up teleporter?
-- [ ] diff memory when moving rooms?
 - [/] nice error types?
 - [?] ASM DSL?
 - [?] Compiler?

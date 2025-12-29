@@ -1,49 +1,278 @@
 import synacor.numbers.*
 import collection.mutable.Map
 
-// def ackLit(m: Lit, n: Lit, r8: Lit = 1.toLit): Lit = (m, n) match
-//   case (m, n) if m == 0.toLit => n + 1.toLit
-//   case (m, n) if n == 0.toLit => ackLit(m + 0x7FFF.toLit, r8, r8)
-//   case (m, n)                 => ackLit(m + 0x7FFF.toLit, ackLit(m, n + 0x7FFF.toLit, r8), r8)
+def ackOpt(m: Int, n: Int, r8: Int = 1): Int = (m, n) match
+  case (0, n) => n + 1
+  case (1, n) => n + r8 + 1
+  case (2, n) => 2*(n + r8 + 2) - 3
+  // 2*(n + r8 + 2) - 3
+  // 2*(np) + 3
+  // r8=1 2n + 3
+  // r8=2 (3)n + (5)
+  // (r8+1)n + (r8*2 + 1)
 
-// def ackLit(m: Lit, n: Lit, r8: Lit = 1.toLit): Lit =
-//   var r1 = m
-//   var r2 = n
-//   while r2 != 0 do
+  // (r8+1)n + (r8*2 + 1)
+  // 2*(n + r8 + 2) - 3
 
-//   r2 + 1
+  case (3, n) => math.pow(2,n + 3).toInt - 3
+  // case (3, n) => math.pow(2,n + r8 + 2).toInt - 3
+  case (m, 0) => ackOpt(m - 1, 1)
+  case (m, n) => ackOpt(m - 1, ackOpt(m, n - 1))
 
-//   (m, n) match
-//   case (m, n) if m == 0.toLit => n + 1.toLit
-//   case (m, n) if n == 0.toLit => ackLit(m + 0x7FFF.toLit, r8, r8)
-//   case (m, n)                 => ackLit(m + 0x7FFF.toLit, ackLit(m, n + 0x7FFF.toLit, r8), r8)
+var n = 0
+math.pow(2,n + 3 /*1 + r8^n*/).toInt - 3
+n = 1
+math.pow(2,n + 3).toInt - 3
 
+val r8 = 2
 
+math.pow(1 + 1,0 + 3).toInt - 3
+math.pow(2 + 1,0 + 3).toInt - 16
+math.pow(3 + 1,0 + 3).toInt - 45
 
+math.pow(r8 + 1,0 + 3).toInt - 16
+math.pow(r8 + 1,1 + 3).toInt - 3*16 + 5
+math.pow(r8 + 1,2 + 3).toInt - 3*3*16 + 5*3 + 5
+math.pow(r8 + 1,3 + 3).toInt - 3*3*3*16 + 5*3*3 + 5*3 + 5
+math.pow(r8 + 1,4 + 3).toInt - 3*3*3*3*16 + 5*3*3*3 + 5*3*3 + 5
 
-val memo = Map.empty[(Int, Int), Int]
+extension (n: Int) def **(m: Int) = math.pow(n,m).toInt
 
-def ack(m: Int, n: Int): Int =
-  lazy val calc = (m, n) match
-    case (0, n) => n + 1
-    case (m, 0) => ack(m - 1, 1)
-    case (m, n) => ack(m - 1, ack(m, n - 1))
-  memo.getOrElseUpdate((m, n), calc)
+// (r8 + 1)**(0 + 2) - 7
+(r8 + 1)**(0 + 3) - 7*3 + 5
+(r8 + 1)**(1 + 3) - 7*(3**2) + 5*3 + 5
+(r8 + 1)**(2 + 3) - 7*(3**3) + 5*3*3 + 5*3 + 5
+(r8 + 1)**(3 + 3) - 7*(3**4) + 5*3*3*3 + 5*3*3 + 5*3 + 5
+(r8 + 1)**(4 + 3) - 7*(3**5) + 5*3*3*3*3 + 5*3*3*3 + 5*3*3 + 5*3 + 5
 
-val memo2 = Map.empty[(Int, Int), Int]
-
-def ack2(m: Int, n: Int, r8: Int = 2): Int =
-  lazy val calc = (m, n) match
-    case (0, r2) => r2 + 1
-    case (r1, 0) => ack2(r1 - 1, r8)
-    case (r1, r2) => ack2(r1 - 1, ack2(r1, r2 - 1))
-  memo2.getOrElseUpdate((m, n), calc)
-
-ack(2,1)
-ack2(2,1)
-memo.size
-memo2.size
+// math.pow(r8 + 1,5 + 3).toInt - 7*(3**6) + 5*3 + 5
 
 
+val b = (r8 + 1)**(1 + 3) - 7*(3**2) + 5*3 + 5
+val a = (r8 + 1)**(0 + 3) - 7*3            + 5
+
+b - a == (r8 + 1)**(1 + 3) - (r8 + 1)**(0 + 3) - 7*(3**2) + 7*3 + 5*3 + 5 - 5
+b - a == (r8 + 1)**(1 + 3) - (r8 + 1)**(0 + 3) + 7*(3 -(3**2)) + 5*3
+3*a + 5 - a
+a*(3-1) + 5
+a
+b == 3*a + 5
+
+a*(3-1) == (r8 + 1)**(1 + 3) - (r8 + 1)**(0 + 3) + 7*(3 -(3**2)) + 5*2
+
+a == ((r8 + 1)**4 - (r8 + 1)**3)/2 - 16
+
+(r8 + 1)**4 - (r8 + 1)**3
+((r8 + 1)**3 - (r8 + 1)**2)*(r8 + 1)
+
+((r8 + 1)**2 - (r8 + 1)**1) * ((r8 + 1)**2)
+
+((r8 + 1) - 1) * ((r8 + 1)**3)
+
+r8 * ((r8 + 1)**3)
+
+r8 * ((r8 + 1)**2) * (r8+1)
+r8 * (r8**2 + 2*r8 + 1) * (r8+1)
+
+r8 * (r8**3 + 3*(r8**2) + 3*r8 + 1)
+
+r8**4 + 3*(r8**3) + 3*(r8**2) + r8
+
+a == ((r8 + 1)**4 - (r8 + 1)**3)/2 - 16
+
+a == (r8 * ((r8 + 1)**3))/2 - 16
+
+r8**4 + 3*(r8**3) + 3*(r8**2) + r8
+
+a == (r8**4 + 3*(r8**3) + 3*(r8**2) + r8)/2 - 16
+
+a == (r8**3 + 3*(r8**2) + 3*(r8**1) + 1) - 16
+
+a == r8**3 + 3*(r8**2) + 3*r8 + 15
+//
+
+
+
+r8**4 + 3*(r8**3) + 3*(r8**2) + r8
+r8**4 + 3*(r8**3) + 3*(r8**2) + r8
+3*(r8**3) + 3*(r8**2) + r8
+
+a
+b
+
+(r8+1)**(2+3) - 7*(3**3) +           5*3*3 + 5*3 + 5
+(r8+1)**(3+3) - 7*(3**4) + 5*3*3*3 + 5*3*3 + 5*3 + 5
+
+// b - a = 5*3*3*3 + 7*(3**3)*(1 - 3) + (r8+1)**(2+3)*(r8+1 - 1)
+// b = a * 3 + 5
+// a * 3 + 5 - a = 5*3*3*3 + 7*(3**3)*(1 - 3) + (r8+1)**(2+3)*(r8+1 - 1)
+// a(3 - 1) = 5*3*3*3 + 7*(3**3)*(1 - 3) + (r8+1)**(2+3)*(r8+1 - 1) - 5
+// a(3 - 1) = 5*3**(2) + 7*(3**3)*(1 - 3) + (r8+1)**(2+3)*(r8+1 - 1) - 5
+
+
+
+
+math.pow(r8 + 1,0 + 3).toInt - 3*7 + 5
+math.pow(r8 + 1,1 + 3).toInt - 3*16 + 5
+math.pow(r8 + 1,2 + 3).toInt - 3*3*16 + 5*3 + 5
+
+(math.pow(r8 + 1,2 + 3).toInt - 3*3*16 + 5*3) + 5
+3*(math.pow(r8 + 1,2 + 3 - 1).toInt - 3*16 + 5) + 5
+
+
+
+math.pow(r8 + 1,1 + 3).toInt - 3*16 + 5
+math.pow(r8 + 1,2 + 3).toInt - 3*3*16 + 5*3 + 5
+
+
+math.pow(r8 + 1,0 + 3).toInt
+math.pow(r8 + 1,1 + 3).toInt
+math.pow(r8 + 1,2 + 3).toInt
+math.pow(r8 + 1,3 + 3).toInt
+math.pow(r8 + 1,4 + 3).toInt
+math.pow(r8 + 1,5 + 3).toInt
+
+// 5 13 29:  2^(n+3) - 3
+2**3 - 3
+5 * 2 + 3
+13 * 2 + 3
+
+// 11 38 119: 3^(n+3)
+3**3 - 16
+11 * 3 + 5
+38 * 3 + 5
+
+// 19 83 339: 4^3
+4**3 - 45
+19 * 4 + 7
+83 * 4 + 7
+
+(3+1)**3
+
+(3+2)**3
+
+11
+11 * 3 + 5
+38 * 3 + 5
+119 * 3 + 5
+362 * 3 + 5
+
+
+// y = ax^2 + bx + c
+// y = ax^2 + bx + c
+
+// -3 == a1^2 + 1b + c
+// -16 == a2^2 + 2b + c
+// -45 == a3^2 + 3b + c
+
+// -3 == a + b + c
+// -16 == 4a + 2b + c
+// -45 == 9a + 3b + c
+
+//   3 == a + b
+// -10 == 4a + 2b
+// -39 == 9a + 3b
+
+//   3 == a + b
+
+// -10 == 4a + 2b
+// -10 -4a ==  2b
+// -5 -2a ==  b
+
+// -39 == 9a + 3b
+
+
+// -16 == a4 + 2b + -3 - a - b
+// -13 == 3a + b
+// -13 == -24 + b
+// 11 == b
+// a == -8
+// -6 == c
+
+// -13 == 3a + b
+// -3a -13  == b
+// -45 == a3^2 + 3(-3a -13) + c
+
+// -5 -2a == -3a -13
+
+// a == -8
+// -6 == c
+
+
+// 2*(n + r8 + 2) - 3
+
+// n = 2*(np) + 3
+
+// r8=1 2n + 3
+// r8=2 (3)n + (5)
+
+
+// y = ax^2 + bx + c
+
+// a0^2 + b0 + c = 13
+// a = 13
+// b = -10
+// c = 13
+
+// ax^2 + bx + c = 16
+// a + b + 13 = 16
+// a + b = 3
+
+// a4 + b2 + c = 45
+// a4 + b2 = 32
+// a2 + b = 16
+
+// a + b = 3
+// 2*a + b = 16
+
+// b = 3 - a
+
+// 2*a + 3 - a = 16
+// a + 3 = 16
+// a = 13
+// b = -10
+
+// ax^2 + bx + c = 45
+// ax^2 + bx + 13 = 45
+// ax^2 + bx = 32
+// b = 3 - a
+// ax^2 + bx = 32
+// ax^2 + (3-a)x = 32
+// ax^2 + 3x-ax = 32
+// ax^2 + 3x-ax = 32
+
+
+// a = 13
+// b = -10
+// c = 13
+
+// 3 16 45
+// 13  39
+
+
+
+
+// (-b +- sqrt(4ac))/2
+
+// y = 13x^2 + 3
+// x = 0: 3
+// x = 1: 16
+// x = 2: 13*4 + 3
+
+
+
+math.pow(r8 + 1,1 + 3).toInt - 3*16 + 5
+
+math.pow(r8 + 1,2 + 3).toInt - 3*3*16 + 5*3 + 5
+
+math.pow(r8 + 1,2 + 3).toInt - 3*(3*16 + 5) + 5
+
+
+math.pow(r8 + 1,2 + 3).toInt - 3*3*16 + 5*3 + 5
+
+
+// math.pow(2,1 + 5).toInt
+// math.pow(2,2 + 5).toInt
+// math.pow(2,3 + 5).toInt
 
 //
