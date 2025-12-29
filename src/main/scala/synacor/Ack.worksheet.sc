@@ -4,7 +4,14 @@ import collection.mutable.Map
 def ackOpt(m: Int, n: Int, r8: Int = 1): Int = (m, n) match
   case (0, n) => n + 1
   case (1, n) => n + r8 + 1
-  case (2, n) => 2*(n + r8 + 2) - 3
+  case (1, n) => n + 2
+  case (1, n) if r8 == 1 => 2 + (n + 3) - 3
+  case (1, n) if r8 == 2 => 2 + (n + 3) - 3 + 1
+  case (2, n)            => 2*(n + r8 + 2) - 3
+  case (2, n) if r8 == 1 => 2*(n + 3) - 3
+  case (2, n) if r8 == 2 => 2*(n + 3) - 3
+
+
   // 2*(n + r8 + 2) - 3
   // 2*(np) + 3
   // r8=1 2n + 3

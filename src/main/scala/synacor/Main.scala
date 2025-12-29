@@ -48,15 +48,13 @@ import numbers.*
   val shortcut = List("doorway", "north", "north", "bridge", "continue", "down", "east", "take empty lantern", "west", "west", "west", "passage", "ladder", "west", "south", "north", "take can", "use can", "use lantern", "west", "ladder", "darkness", "continue", "west", "west", "west", "west", "north", "take red coin", "north", "west", "take blue coin", "up", "take shiny coin", "down", "east", "east", "take concave coin", "down", "take corroded", "take corroded coin", "up", "west", "inv", "use blue coin", "use red coin", "use shiny coin", "use concave coin", "use corroded coin", "north", "teleporter", "take teleporter")
   emu = emu.feedMultiple(shortcut.map(_ + '\n'))
   emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
-  emu = emu.setRegister(numbers.Reg.R8, 100.toLit)
-  val toVault = List("use teleporter", "north", "north", "north", "north", "north", "north", "north", "north", "north")
-  emu = emu.feedMultiple(toVault.map(_ + '\n'))
-  emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
-  // val solveVault = "take orb,north,east,east,north,east,south,west,north,west,south,east,north,west,west,north".split(',').toList
-  // val solveVault = "take orb,north,east,west,north,south,east,west,north,south,east,west,north,south,east,west,north,south,east,east,east,north".split(',').toList
-  val solveVault = "take orb,north,east,east,north,west,south,east,east,west,north,north,east,east,east,vault".split(',').toList
-  emu = emu.feedMultiple(solveVault.map(_ + '\n'))
-  emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
+  // emu = emu.setRegister(numbers.Reg.R8, 25734.toLit)
+  // val toVault = List("use teleporter", "north", "north", "north", "north", "north", "north", "north", "north", "north")
+  // emu = emu.feedMultiple(toVault.map(_ + '\n'))
+  // emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
+  // val solveVault = "take orb,north,east,east,north,west,south,east,east,west,north,north,east,east,east,vault".split(',').toList
+  // emu = emu.feedMultiple(solveVault.map(_ + '\n'))
+  // emu = emu.progressUntilBlocked.copy(outputQueue = collection.immutable.Queue.empty)
   emu = emu.feed("look\n")
   // emu = emu.toggleOplog
 
