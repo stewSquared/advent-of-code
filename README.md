@@ -3,7 +3,7 @@
 My Solutions to [Advent of Code](https://adventofcode.com), written in Scala 3
 
 ## Links
-- 📊 I have a [leaderboard](https://adventofcode.com/2025/leaderboard/private/view/1567548)! Code to join is `1567548-37bb9c26`
+- 📊 I have a [leaderboard](https://adventofcode.com/2021/leaderboard/private/view/1567548?view_key=0c5c90d4)! Code to join is `1567548-37bb9c26`
 - 🔴 I live stream solutions on [Twitch](https://twitch.tv/stewSquared) and [YouTube](https://youtube.com/@stewSquared).
 - 💬 Comments and questions? Come chat in [Discord](https://discord.gg/SgZemzbHPa).
 
